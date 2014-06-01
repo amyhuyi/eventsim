@@ -35,11 +35,8 @@ OBJECTDIR=${CND_BUILDDIR}/${CND_CONF}/${CND_PLATFORM}
 
 # Object Files
 OBJECTFILES= \
-	${OBJECTDIR}/_ext/1466955783/event.o \
-	${OBJECTDIR}/_ext/1466955783/event_scheduler.o \
-	${OBJECTDIR}/_ext/1466955783/main.o \
-	${OBJECTDIR}/_ext/1466955783/network.o \
-	${OBJECTDIR}/_ext/1466955783/util.o \
+	${OBJECTDIR}/event.o \
+	${OBJECTDIR}/event_scheduler.o \
 	${OBJECTDIR}/genran/extreal.o \
 	${OBJECTDIR}/genran/format.o \
 	${OBJECTDIR}/genran/geturng.o \
@@ -60,7 +57,10 @@ OBJECTFILES= \
 	${OBJECTDIR}/genran/tryrand6.o \
 	${OBJECTDIR}/genran/tryurng.o \
 	${OBJECTDIR}/genran/tryurng1.o \
-	${OBJECTDIR}/genran/utility.o
+	${OBJECTDIR}/genran/utility.o \
+	${OBJECTDIR}/main.o \
+	${OBJECTDIR}/network.o \
+	${OBJECTDIR}/util.o
 
 
 # C Compiler Flags
@@ -87,30 +87,15 @@ ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/eventsim: ${OBJECTFILES}
 	${MKDIR} -p ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}
 	${LINK.cc} -o ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/eventsim ${OBJECTFILES} ${LDLIBSOPTIONS}
 
-${OBJECTDIR}/_ext/1466955783/event.o: ../event_churn1/event.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1466955783
+${OBJECTDIR}/event.o: event.cpp 
+	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1466955783/event.o ../event_churn1/event.cpp
+	$(COMPILE.cc) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/event.o event.cpp
 
-${OBJECTDIR}/_ext/1466955783/event_scheduler.o: ../event_churn1/event_scheduler.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1466955783
+${OBJECTDIR}/event_scheduler.o: event_scheduler.cpp 
+	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1466955783/event_scheduler.o ../event_churn1/event_scheduler.cpp
-
-${OBJECTDIR}/_ext/1466955783/main.o: ../event_churn1/main.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1466955783
-	${RM} "$@.d"
-	$(COMPILE.cc) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1466955783/main.o ../event_churn1/main.cpp
-
-${OBJECTDIR}/_ext/1466955783/network.o: ../event_churn1/network.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1466955783
-	${RM} "$@.d"
-	$(COMPILE.cc) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1466955783/network.o ../event_churn1/network.cpp
-
-${OBJECTDIR}/_ext/1466955783/util.o: ../event_churn1/util.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1466955783
-	${RM} "$@.d"
-	$(COMPILE.cc) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1466955783/util.o ../event_churn1/util.cpp
+	$(COMPILE.cc) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/event_scheduler.o event_scheduler.cpp
 
 ${OBJECTDIR}/genran/extreal.o: genran/extreal.cpp 
 	${MKDIR} -p ${OBJECTDIR}/genran
@@ -216,6 +201,21 @@ ${OBJECTDIR}/genran/utility.o: genran/utility.cpp
 	${MKDIR} -p ${OBJECTDIR}/genran
 	${RM} "$@.d"
 	$(COMPILE.cc) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/genran/utility.o genran/utility.cpp
+
+${OBJECTDIR}/main.o: main.cpp 
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.cc) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/main.o main.cpp
+
+${OBJECTDIR}/network.o: network.cpp 
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.cc) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/network.o network.cpp
+
+${OBJECTDIR}/util.o: util.cpp 
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.cc) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/util.o util.cpp
 
 # Subprojects
 .build-subprojects:

@@ -4,11 +4,11 @@
     <logicalFolder name="HeaderFiles"
                    displayName="Header Files"
                    projectFiles="true">
-      <itemPath>../event_churn1/event.h</itemPath>
-      <itemPath>../event_churn1/event_scheduler.h</itemPath>
-      <itemPath>../event_churn1/network.h</itemPath>
-      <itemPath>../event_churn1/overnet.h</itemPath>
-      <itemPath>../event_churn1/util.h</itemPath>
+      <itemPath>event.h</itemPath>
+      <itemPath>event_scheduler.h</itemPath>
+      <itemPath>network.h</itemPath>
+      <itemPath>overnet.h</itemPath>
+      <itemPath>util.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ResourceFiles"
                    displayName="Resource Files"
@@ -83,11 +83,11 @@
         <itemPath>genran/utility.h</itemPath>
         <itemPath>genran/wh.txt</itemPath>
       </logicalFolder>
-      <itemPath>../event_churn1/event.cpp</itemPath>
-      <itemPath>../event_churn1/event_scheduler.cpp</itemPath>
-      <itemPath>../event_churn1/main.cpp</itemPath>
-      <itemPath>../event_churn1/network.cpp</itemPath>
-      <itemPath>../event_churn1/util.cpp</itemPath>
+      <itemPath>event.cpp</itemPath>
+      <itemPath>event_scheduler.cpp</itemPath>
+      <itemPath>main.cpp</itemPath>
+      <itemPath>network.cpp</itemPath>
+      <itemPath>util.cpp</itemPath>
     </logicalFolder>
     <logicalFolder name="TestFiles"
                    displayName="Test Files"
@@ -115,32 +115,17 @@
       </toolsSet>
       <compileType>
       </compileType>
-      <item path="../event_churn1/event.cpp" ex="false" tool="1" flavor2="0">
-      </item>
-      <item path="../event_churn1/event.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../event_churn1/event_scheduler.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../event_churn1/event_scheduler.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../event_churn1/main.cpp" ex="false" tool="1" flavor2="0">
-      </item>
-      <item path="../event_churn1/network.cpp" ex="false" tool="1" flavor2="0">
-      </item>
-      <item path="../event_churn1/network.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../event_churn1/overnet.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../event_churn1/util.cpp" ex="false" tool="1" flavor2="0">
-      </item>
-      <item path="../event_churn1/util.h" ex="false" tool="3" flavor2="0">
-      </item>
       <item path="LICENSE" ex="false" tool="3" flavor2="0">
       </item>
       <item path="README.md" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="event.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="event.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="event_scheduler.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="event_scheduler.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="genran/_newran.dox" ex="false" tool="3" flavor2="0">
       </item>
@@ -265,6 +250,18 @@
       <item path="genran/utility.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="genran/wh.txt" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="main.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="network.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="network.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="overnet.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="util.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="util.h" ex="false" tool="3" flavor2="0">
       </item>
     </conf>
     <conf name="Release" type="1">
@@ -287,32 +284,17 @@
           <developmentMode>5</developmentMode>
         </asmTool>
       </compileType>
-      <item path="../event_churn1/event.cpp" ex="false" tool="1" flavor2="0">
-      </item>
-      <item path="../event_churn1/event.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../event_churn1/event_scheduler.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../event_churn1/event_scheduler.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../event_churn1/main.cpp" ex="false" tool="1" flavor2="0">
-      </item>
-      <item path="../event_churn1/network.cpp" ex="false" tool="1" flavor2="0">
-      </item>
-      <item path="../event_churn1/network.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../event_churn1/overnet.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../event_churn1/util.cpp" ex="false" tool="1" flavor2="0">
-      </item>
-      <item path="../event_churn1/util.h" ex="false" tool="3" flavor2="0">
-      </item>
       <item path="LICENSE" ex="false" tool="3" flavor2="0">
       </item>
       <item path="README.md" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="event.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="event.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="event_scheduler.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="event_scheduler.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="genran/_newran.dox" ex="false" tool="3" flavor2="0">
       </item>
@@ -437,6 +419,18 @@
       <item path="genran/utility.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="genran/wh.txt" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="main.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="network.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="network.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="overnet.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="util.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="util.h" ex="false" tool="3" flavor2="0">
       </item>
     </conf>
   </confs>

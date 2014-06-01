@@ -128,7 +128,7 @@ int main(int argc, const char* argv[])
 	EventScheduler::Inst()->NextEvent();
     }
     Underlay::Inst()->generateLeaveChurn(5, 0.01*Underlay::Inst()->global_node_table.size(), 5, 0);
-    Underlay::Inst()->generateWorkload(1000,Underlay::Inst()->global_node_table.size(),'Q');
+    Underlay::Inst()->generateWorkload(10000,Underlay::Inst()->global_node_table.size(),'Q');
     //Underlay::Inst()->generateWorkload(1000,Underlay::Inst()->global_node_table.size(),'U');
     
     while ( ! EventScheduler::Inst()->Empty() && EventScheduler::Inst()->GetCurrentTime() <= Settings::EndTime

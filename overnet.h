@@ -24,7 +24,6 @@ typedef unsigned int ADDRINT;
 
 #define GNRS_HASH_RANGE 4294967295 //2^32
 #define GUID_SIZE 44 //160+32*5+32 = 352 bits
-#define GNRS_K 5
 #define PING_SIZE 9 //8 byte UDP header, 1 byte data
 #define PING_PERIOD 5000// 5 seconds 
 
@@ -51,13 +50,22 @@ static inline void InRangePlus (UINT32 & currValue, UINT32 range){
 class Settings
 {
 public:
-	static UINT32 NumOfAS;
-	static FLOAT64 EndTime;
-        static FLOAT64 TestDuration;
+        static string outFileName;
+        static FLOAT64 EndTime;
+        static FLOAT64 TestThreshold;//admission qualified threshold
+        static FLOAT64 OnOffSession;//session length for churn
+        static UINT32 OnOffRounds;//0: leave, 1: leave+join, 2: leave+join+leave...
+        static UINT32 ChurnHours;//# of consecutive hours of churn generation
+        static UINT32 QueryHours;//# of hours query generation
+        static UINT32 UpdateHours;//# of hours update generation
+        static FLOAT64 ChurnPerNode;
+        static FLOAT64 QueryPerNode;
+        static FLOAT64 UpdatePerNode;
 	static UINT32 TotalVirtualGUID;
 	static UINT32 TotalActiveGUID;
         static UINT32 NeighborSize;
         static UINT32 DHTHop;
+        static UINT32 GNRS_K;
 };
 
 struct Query_Latency{

@@ -352,7 +352,7 @@ void AS::determineHost(UINT32 guid, set<UINT32>& localhostNodeIdx){
     UINT32 rightPtr = vPhostIdx;
     InRangePlus(rightPtr, total_no_of_nodes);
     
-    while(localhostNodeIdx.size()< GNRS_K && leftPtr != rightPtr){
+    while(localhostNodeIdx.size()< Settings::GNRS_K && leftPtr != rightPtr){
         while (_local_view_offNodes.find(rightPtr) != _local_view_offNodes.end()){
             InRangePlus(rightPtr, total_no_of_nodes);
         }
@@ -369,7 +369,7 @@ void AS::determineHost(UINT32 guid, set<UINT32>& localhostNodeIdx){
         }
     }
     
-    if(localhostNodeIdx.size()< GNRS_K && leftPtr == rightPtr){
+    if(localhostNodeIdx.size()< Settings::GNRS_K && leftPtr == rightPtr){
         if(_local_view_offNodes.find(leftPtr) == _local_view_offNodes.end())
             localhostNodeIdx.insert(leftPtr);
     }
@@ -408,7 +408,6 @@ Underlay::Underlay(const char* routeFile, const char* asFile) {
     ReadInRoutingTable(routeFile);
     ReadInASInfo(asFile);
     InitializeNetwork();
-    _statFilePrefix=asFile;
 }
 
 Underlay::~Underlay() {}
@@ -516,7 +515,7 @@ void Underlay::InitializeNetwork(){
 void Underlay::getNeighbors(UINT32 nodeIdx, set<UINT32> & neighborsIdx_v){
     UINT32 currNodeIdx = nodeIdx;
     neighborsIdx_v.clear();
-    UINT32 halfNeighborSize = ceil((double)(GNRS_K/2));
+    UINT32 halfNeighborSize = ceil((double)(Settings::GNRS_K/2));
     if(halfNeighborSize < (Settings::NeighborSize/2))
         halfNeighborSize = Settings::NeighborSize/2;
     while (neighborsIdx_v.size()< halfNeighborSize){
@@ -640,7 +639,7 @@ void Underlay::determineHost(UINT32 guid, set<UINT32> & _hostNodeIdx){
     if(global_node_table[vPhostIdx].isInService())
         _hostNodeIdx.insert(vPhostIdx);
    
-    while(_hostNodeIdx.size()< GNRS_K && leftPtr != rightPtr){
+    while(_hostNodeIdx.size()< Settings::GNRS_K && leftPtr != rightPtr){
         while (!global_node_table[rightPtr].isInService()){
             InRangePlus(rightPtr, _num_of_node);
         }
@@ -656,7 +655,7 @@ void Underlay::determineHost(UINT32 guid, set<UINT32> & _hostNodeIdx){
             InRangePlus(rightPtr,_num_of_node);
         }
     }
-    if(_hostNodeIdx.size()< GNRS_K && leftPtr == rightPtr){
+    if(_hostNodeIdx.size()< Settings::GNRS_K && leftPtr == rightPtr){
         if(global_node_table[rightPtr].isInService())
             _hostNodeIdx.insert(rightPtr);
     }
@@ -689,7 +688,7 @@ void Underlay::PrintRetryStat()
     }
     cout<<"print retry stat\n";
     //format time nodeCnt querymsgCnt InsertionMsgCnt totalMsgCnt
-    string retryFile = _statFilePrefix;
+    string retryFile = Settings::outFileName;
     retryFile += "_retryStats.txt";
     ofstream retryHdlr;
     retryHdlr.open(retryFile.c_str(),ios::out | ios::in | ios:: trunc);

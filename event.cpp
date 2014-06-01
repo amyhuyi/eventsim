@@ -97,8 +97,8 @@ PreJoinMessage::PreJoinMessage(UINT32 nodeIdx,FLOAT64 arrivalTime, FLOAT64 servi
     _service_time = service_time;
     _churnNo = churnNo;
     _type = MT_Pre_JOIN;
-    if(service_time >= Settings::TestDuration){
-        _time_done = _time_created + arrivalTime + Settings::TestDuration;
+    if(service_time >= Settings::TestThreshold){
+        _time_done = _time_created + arrivalTime + Settings::TestThreshold;
     }
     else{
         _time_done = _time_created + arrivalTime + service_time;
@@ -112,9 +112,9 @@ bool PreJoinMessage::Callback(){
     UINT32 currNodeIdx, currASIdx;
     UINT32 pingCnt;
     
-    if(_service_time >= Settings::TestDuration){
-        pingCnt = Settings::TestDuration/PING_PERIOD;
-        JoinMessage * aJoinMsg = new JoinMessage(_nodeIdx, (_service_time - Settings::TestDuration), _churnNo);
+    if(_service_time >= Settings::TestThreshold){
+        pingCnt = Settings::TestThreshold/PING_PERIOD;
+        JoinMessage * aJoinMsg = new JoinMessage(_nodeIdx, (_service_time - Settings::TestThreshold), _churnNo);
         EventScheduler::Inst()->AddEvent(aJoinMsg);
         Underlay::Inst()->global_node_table[_nodeIdx].setInService(EventScheduler::Inst()->GetCurrentTime());
         Underlay::Inst()->as_v[Underlay::Inst()->global_node_table[_nodeIdx].getASIdx()].beNotifedAjoin(_nodeIdx);
@@ -124,7 +124,7 @@ bool PreJoinMessage::Callback(){
             currNodeIdx = (*it);
             currASIdx = Underlay::Inst()->global_node_table[currNodeIdx].getASIdx();
             Stat::Ping_per_node[currNodeIdx]+=pingCnt;
-            Stat::Migration_per_node[currNodeIdx] += migrationOverhead/GNRS_K; //ToDo:check
+            Stat::Migration_per_node[currNodeIdx] += migrationOverhead/Settings::GNRS_K; //ToDo:check
             Underlay::Inst()->as_v[currASIdx].beNotifedAjoin(_nodeIdx);
         }
     }
@@ -166,19 +166,19 @@ PreLeaveMessage::PreLeaveMessage(UINT32 nodeIdx, FLOAT64 arrivalTime,FLOAT64 off
     _off_time = off_time;
     _churnNo = churnNo;
     _type = MT_Pre_LEAVE;
-    if(off_time >= Settings::TestDuration)
-        _time_done = _time_created + arrivalTime + Settings::TestDuration;
+    if(off_time >= Settings::TestThreshold)
+        _time_done = _time_created + arrivalTime + Settings::TestThreshold;
     else
         _time_done = _time_created + arrivalTime + off_time;
 }
 bool PreLeaveMessage::Callback(){
     assert(Underlay::Inst()->global_node_table[_nodeIdx].isInService());
-    if(_off_time >= Settings::TestDuration){
+    if(_off_time >= Settings::TestThreshold){
         set <UINT32> myNeighborsIdx_v;
         Underlay::Inst()->getNeighbors(_nodeIdx, myNeighborsIdx_v);
         set <UINT32>::iterator it;
         UINT32 currNodeIdx, currASIdx;
-        LeaveMessage * aleaveMsg = new LeaveMessage(_nodeIdx, (_off_time - Settings::TestDuration),_churnNo);
+        LeaveMessage * aleaveMsg = new LeaveMessage(_nodeIdx, (_off_time - Settings::TestThreshold),_churnNo);
         EventScheduler::Inst()->AddEvent(aleaveMsg);
         Underlay::Inst()->global_node_table[_nodeIdx].setOffService(EventScheduler::Inst()->GetCurrentTime());
         Underlay::Inst()->as_v[Underlay::Inst()->global_node_table[_nodeIdx].getASIdx()].beNotifedAleave(_nodeIdx);
@@ -186,7 +186,7 @@ bool PreLeaveMessage::Callback(){
         for(it = myNeighborsIdx_v.begin(); it != myNeighborsIdx_v.end(); ++it){
             currNodeIdx = (*it);
             currASIdx = Underlay::Inst()->global_node_table[currNodeIdx].getASIdx();
-            Stat::Migration_per_node[currNodeIdx] += migrationOverhead/GNRS_K; //ToDo:check
+            Stat::Migration_per_node[currNodeIdx] += migrationOverhead/Settings::GNRS_K; //ToDo:check
             Underlay::Inst()->as_v[currASIdx].beNotifedAleave(_nodeIdx);
         }
     }

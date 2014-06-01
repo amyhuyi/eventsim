@@ -95,7 +95,6 @@ class Underlay
 {
 private:
     static Underlay* _underlay_ptr;
-    string _statFilePrefix;
     UINT32 _num_of_as;
     UINT32 _num_of_node;
     UINT32 *as_dist_matx;           //shortest distance matrix

@@ -7,6 +7,8 @@
 #include <fstream>
 #include <iostream>
 #include <cmath>
+#include <cstring>
+#include <algorithm>
 #include "network.h"
 #include "event_scheduler.h"
 #include "util.h"

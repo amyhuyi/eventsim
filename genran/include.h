@@ -84,6 +84,7 @@
 
 #ifdef _STANDARD_                       // using standard library
    #include <cstdlib>
+   #include <cstdio>
    #if defined _MSC_VER && _MSC_VER == 1200
       #include <limits>              // for VC++6
    #endif
@@ -111,6 +112,7 @@
 
 #ifdef _MSC_VER                         // Microsoft
    #include <stdlib.h>
+   #include <stdio.h>
 
 //   reactivate these statements to run under MSC version 7.0
 //   typedef int jmp_buf[9];
@@ -142,6 +144,7 @@
 
 #ifdef __ZTC__                          // Zortech
    #include <stdlib.h>
+   #include <stdio.h>
    #ifdef WANT_STREAM
       #include <iostream.hpp>
       #include <iomanip.hpp>
@@ -165,6 +168,7 @@
 
 #if defined __BCPLUSPLUS__ || defined __TURBOC__  // Borland or Turbo
    #include <stdlib.h>
+   #include <stdio.h>
    #ifdef WANT_STREAM
       #include <iostream.h>
       #include <iomanip.h>
@@ -189,6 +193,7 @@
 
 #ifdef __GNUG__                         // Gnu C++
    #include <stdlib.h>
+   #include <stdio.h>
    #ifdef WANT_STREAM
       #include <iostream.h>
       #include <iomanip.h>
@@ -211,6 +216,7 @@
 
 #ifdef __WATCOMC__                      // Watcom C/C++
    #include <stdlib.h>
+   #include <stdio.h>
    #ifdef WANT_STREAM
       #include <iostream.h>
       #include <iomanip.h>
@@ -234,6 +240,7 @@
 
 #ifdef macintosh                        // MPW C++ on the Mac
 #include <stdlib.h>
+   #include <stdio.h>
 #ifdef WANT_STREAM
 #include <iostream.h>
 #include <iomanip.h>
@@ -256,6 +263,7 @@
 
 #ifdef use_float_h                      // use float.h for precision values
 #include <stdlib.h>
+   #include <stdio.h>
 #ifdef WANT_STREAM
 #include <iostream.h>
 #include <iomanip.h>
@@ -280,6 +288,7 @@
 #ifdef DEFAULT_HEADER                   // for example AT&T
 #define ATandT
 #include <stdlib.h>
+   #include <stdio.h>
 #ifdef WANT_STREAM
 #include <iostream.h>
 #include <iomanip.h>

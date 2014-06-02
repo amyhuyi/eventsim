@@ -15,7 +15,7 @@ vector<UINT32> Stat::Workload_per_node; //GNRS answer query overhead
 vector<Query_Latency> Stat::Query_latency_time;
 vector<Query_Latency> Stat::Insertion_latency_time;
 vector<Retry_Count> Stat::Retry_Cnt;
-vector<Retry_Count> Stat::DHT_Retry_time;
+vector<Retry_Count> Stat::DHT_RetryCnt;
 vector<UINT32> Stat::Migration_per_node;
 UINT32 Stat::Premature_joins=0;
 UINT32 Stat::Premature_leaves=0;
@@ -178,7 +178,7 @@ int main(int argc, const char* argv[])
     
     Underlay::Inst()->InitializeWorkload();
     cout<<"total # nodes "<<Underlay::Inst()->global_node_table.size()<<endl;
-    Settings::DHTHop = log10((FLOAT64)Underlay::Inst()->global_node_table.size());
+    //Settings::DHTHop = log10((FLOAT64)Underlay::Inst()->global_node_table.size());
     if(Settings::QueryHours > Settings::UpdateHours)
         Settings::EndTime = Settings::QueryHours;
     else
@@ -222,20 +222,19 @@ int main(int argc, const char* argv[])
             && EventScheduler::Inst()->GetSize()>1){
 	Event * pevent = EventScheduler::Inst()->CurrentEvent();
 	//cout <<"queued jobs: " <<EventScheduler::Inst()->GetSize() <<" info: ";
-	//pevent->PrintInfo();
+	pevent->PrintInfo();
 	if (pevent->Callback()){
             delete pevent;
 	}
 	EventScheduler::Inst()->NextEvent();
     }
     /*
-    cout<<"Stat::Query_latency_time.size() "<<Stat::Query_latency_time.size()<<endl;
     for (int i = 0; i < Stat::Query_latency_time.size(); i++) {
-       cout<<Stat::Query_latency_time[i]._delay<<" "<<Stat::Query_latency_time[i]._operation<<" "<<Stat::Query_latency_time[i]._time<<endl;
+       cout<<Stat::Query_latency_time[i]._delay<<" "<<Stat::Query_latency_time[i]._time<<endl;
     }
     cout<<"Stat::Insertion_latency_time.size() "<<Stat::Insertion_latency_time.size()<<endl;
     for (int i = 0; i < Stat::Insertion_latency_time.size(); i++) {
-       cout<<Stat::Insertion_latency_time[i]._delay<<" "<<Stat::Insertion_latency_time[i]._operation<<" "<<Stat::Insertion_latency_time[i]._time<<endl;
+       cout<<Stat::Insertion_latency_time[i]._delay<<" "<<Stat::Insertion_latency_time[i]._time<<endl;
     }
     cout<<"Stat::Retry_Cnt.size()"<<Stat::Retry_Cnt.size()<<endl;
     for (int i = 0; i < Stat::Retry_Cnt.size();i++) {
@@ -249,11 +248,11 @@ int main(int argc, const char* argv[])
     Underlay::Inst()->PrintRetryStat();
     cout<<"Stat::Retry_Cnt.size()"<<Stat::Retry_Cnt.size()<<endl;
     for (int i = 0; i < Stat::Retry_Cnt.size();i++) {
-       cout<<Stat::Retry_Cnt[i]._retry<<" "<<Stat::Retry_Cnt[i]._operation<<" "<<Stat::Retry_Cnt[i]._time<<" "<<Stat::Retry_Cnt[i]._delay<<endl;
+       cout<<Stat::Retry_Cnt[i]._time<<" "<<Stat::Retry_Cnt[i]._retryUpdate<<" "<<Stat::Retry_Cnt[i]._retryQuery<<endl;
     }
     
-    for (int i = 0; i < Stat::DHT_Retry_time.size(); i++) {
-       cout<<Stat::DHT_Retry_time[i]._retry<<" "<<Stat::DHT_Retry_time[i]._operation<<" "<<Stat::DHT_Retry_time[i]._time<<endl;
+    for (int i = 0; i < Stat::DHT_RetryCnt.size(); i++) {
+       cout<<Stat::DHT_RetryCnt[i]._time<<" "<<Stat::DHT_RetryCnt[i]._retryUpdate<<" "<<Stat::DHT_RetryCnt[i]._retryQuery<<endl;
     }
     /*for (int i = 0; i < 10; i++) {
         for(int j=0; j<10; j++)

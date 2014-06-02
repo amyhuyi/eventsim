@@ -57,7 +57,9 @@ private:
     FLOAT64 getMaxDistance(vector<UINT32> correctHost);
     FLOAT64 getMinDistance(vector<UINT32> correctHost);
     FLOAT64 calInsertDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost);
-    FLOAT64 calQueryDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost); 
+    FLOAT64 calQueryDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost);
+    UINT32 getIdxRetryCnt(FLOAT64 currTime, bool isDHTretry);
+    UINT32 getIdxQueryLatency(FLOAT64 currTime, bool isInsertion);
 public:
     
     AS(UINT32 asindex, UINT32 tier, UINT32 capacity);

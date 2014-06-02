@@ -213,6 +213,65 @@ FLOAT64 AS::calQueryDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyIngloba
         return minDistance*2;
     }
 }
+UINT32 AS::getIdxQueryLatency(FLOAT64 currTime, bool isInsertion){
+    if(isInsertion){
+        for (int i = 0; i < Stat::Insertion_latency_time.size(); i++) {
+            if (Stat::Insertion_latency_time[i]._time == currTime)
+                return i;
+        }
+    }
+    else{
+        for (int i = 0; i < Stat::Query_latency_time.size(); i++) {
+            if(Stat::Query_latency_time[i]._time == currTime)
+                return i;
+        }
+    }
+    Query_Latency aQueryLatency;
+    aQueryLatency._time = currTime;
+    aQueryLatency._count=0;
+    aQueryLatency._total_delay=0;
+    if(isInsertion){
+        Stat::Insertion_latency_time.push_back(aQueryLatency);
+        return (Stat::Insertion_latency_time.size()-1);
+    }
+    else{
+        Stat::Query_latency_time.push_back(aQueryLatency);
+        return (Stat::Query_latency_time.size()-1);
+    }
+}
+
+UINT32 AS::getIdxRetryCnt(FLOAT64 currTime, bool isDHTretry){
+    if(isDHTretry){
+        for(int i=0; i<Stat::DHT_RetryCnt.size(); i++){
+            if (Stat::DHT_RetryCnt[i]._time == currTime) {
+                return i;
+            }
+        }
+    }
+    else {
+        for(int i=0; i<Stat::Retry_Cnt.size(); i++){
+            if (Stat::Retry_Cnt[i]._time == currTime) {
+                return i;
+            }
+        }
+    }
+    Retry_Count aRetryCount;
+    aRetryCount._time = currTime;
+    aRetryCount._retryQMsg =0;
+    aRetryCount._retryQuery=0;
+    aRetryCount._retryUMsg=0;
+    aRetryCount._retryUpdate=0;
+    aRetryCount._Qdelay.clear();
+    aRetryCount._Udelay.clear();
+    if(isDHTretry){
+        Stat::DHT_RetryCnt.push_back(aRetryCount);
+        return (Stat::DHT_RetryCnt.size()-1);
+    }
+    else {
+        Stat::Retry_Cnt.push_back(aRetryCount);
+        return (Stat::Retry_Cnt.size()-1);
+    }
+}
 /*
  * 1. calculate correct host 2. updated local view from the correct host of this operation
  * 3. statistics on delay and retry no. 
@@ -235,34 +294,67 @@ void AS::calCorrectHost(set<UINT32> localHostset, set<UINT32> globalHostset, cha
         if (localHostset.find((*it))== localHostset.end())
             onlyInglobal.push_back((*it));
     }
-    //statistics accounting on delay
-    struct Query_Latency thisDelay(opt, EventScheduler::Inst()->GetCurrentTime());
+    
+    FLOAT64 currDelay=-1;
     if (opt == 'I' || opt == 'U') {
-        thisDelay._delay = calInsertDelay(onlyInlocal, onlyInglobal, correctHost);
-        Stat::Insertion_latency_time.push_back(thisDelay);
+        currDelay = calInsertDelay(onlyInlocal, onlyInglobal, correctHost);
     } else {
-        thisDelay._delay = calQueryDelay(onlyInlocal, onlyInglobal, correctHost);
-        Stat::Query_latency_time.push_back(thisDelay);
+        currDelay = calQueryDelay(onlyInlocal, onlyInglobal, correctHost);
     }
     //statistics accounting on retry
-    bool shouldUpdateLocalView = false;
-    struct Retry_Count thisRetry(opt,EventScheduler::Inst()->GetCurrentTime());
-    thisRetry._delay=thisDelay._delay;
-    if (correctHost.size() < localHostset.size()) {
-        if(correctHost.size()==0){
-            thisRetry._retry=1;
-            Stat::DHT_Retry_time.push_back(thisRetry);
-            shouldUpdateLocalView=true;
+    bool shouldUpdateLocalView = false, shouldInsertRetryCnt = false;
+    UINT32 currRetryMsg=0;
+    UINT32 idxRetryCnt=0;
+    if(correctHost.size()==0){
+        idxRetryCnt = getIdxRetryCnt(EventScheduler::Inst()->GetCurrentTime(), true);
+        if(opt == 'I' || opt == 'U' ){
+            Stat::DHT_RetryCnt[idxRetryCnt]._retryUpdate++;
+            Stat::DHT_RetryCnt[idxRetryCnt]._Udelay.push_back(currDelay);
         }
+        else if(opt == 'Q'){
+            Stat::DHT_RetryCnt[idxRetryCnt]._retryQuery++;
+            Stat::DHT_RetryCnt[idxRetryCnt]._Qdelay.push_back(currDelay);
+        }    
+        shouldUpdateLocalView=true;
+        shouldInsertRetryCnt=true;
+    }    
+    if (correctHost.size() < localHostset.size()) {
         if(opt == 'I' || opt == 'U' || (opt == 'Q'&& correctHost.size()==0)){
-            thisRetry._retry = (localHostset.size()- correctHost.size());
-            Stat::Retry_Cnt.push_back(thisRetry);
+            currRetryMsg = (localHostset.size()- correctHost.size());
+            shouldInsertRetryCnt =true;
             shouldUpdateLocalView=true;
         }
         else if(opt == 'Q' && getMinDistance(onlyInlocal)< getMinDistance(correctHost)){
-            thisRetry._retry = 1;
-            Stat::Retry_Cnt.push_back(thisRetry);
+            currRetryMsg = localHostset.size()-1; //assume query one nearest host fail, retry all the other available host
+            shouldInsertRetryCnt =true;
             shouldUpdateLocalView=true;
+        }
+    }
+    if(shouldInsertRetryCnt){
+        idxRetryCnt = getIdxRetryCnt(EventScheduler::Inst()->GetCurrentTime(), false);
+        if(opt == 'I'|| opt == 'U'){
+            Stat::Retry_Cnt[idxRetryCnt]._Udelay.push_back(currDelay);
+            Stat::Retry_Cnt[idxRetryCnt]._retryUpdate++;
+            Stat::Retry_Cnt[idxRetryCnt]._retryUMsg += currRetryMsg;
+        }
+        else if(opt == 'Q'){
+            Stat::Retry_Cnt[idxRetryCnt]._Qdelay.push_back(currDelay);
+            Stat::Retry_Cnt[idxRetryCnt]._retryQuery++;
+            Stat::Retry_Cnt[idxRetryCnt]._retryQMsg += currRetryMsg;
+        }
+    }
+    else{
+        //statistics accounting on normal delay
+        UINT32 idxLatency=0;
+        if (opt == 'I' || opt == 'U') {
+            idxLatency = getIdxQueryLatency(EventScheduler::Inst()->GetCurrentTime(), true);
+            Stat::Insertion_latency_time[idxLatency]._count++;
+            Stat::Insertion_latency_time[idxLatency]._total_delay += currDelay;
+        } 
+        else {
+            idxLatency = getIdxQueryLatency(EventScheduler::Inst()->GetCurrentTime(), false);
+            Stat::Query_latency_time[idxLatency]._count++;
+            Stat::Query_latency_time[idxLatency]._total_delay += currDelay;
         }
     }
     //update local view of node table
@@ -694,42 +786,27 @@ void Underlay::PrintRetryStat()
     retryHdlr.open(retryFile.c_str(),ios::out | ios::in | ios:: trunc);
 
     sort(Stat::Retry_Cnt.begin(),Stat::Retry_Cnt.end());
-    int currIdx=0;
-    FLOAT64 currTime=Stat::Retry_Cnt[0]._time;
-    FLOAT64 insertionDelay=0, queryDelay=0;
-    UINT32 currNodeCnt=0, currQMsgCnt=0, currIMsgCnt=0, insertionNodeCnt=0, queryNodeCnt=0;
-    while(currIdx<=Stat::Retry_Cnt.size()){
-        if(Stat::Retry_Cnt[currIdx]._time != currTime || currIdx == Stat::Retry_Cnt.size()){
-            retryHdlr<<currTime<<' '<<insertionNodeCnt<<' '<<queryNodeCnt<<' '<<currIMsgCnt<<' '<<currQMsgCnt<<' ';
-            if(insertionNodeCnt)
-                retryHdlr<<insertionDelay/(FLOAT64)(insertionNodeCnt)<<' ';
-            else
-                retryHdlr<<0<<' ';
-            if(queryNodeCnt)
-                retryHdlr<<queryDelay/(FLOAT64)(queryNodeCnt)<<endl;
-            else
-                retryHdlr<<0<<endl;
-            if(currIdx == Stat::Retry_Cnt.size()){
-                return;
-            }
-            currTime = Stat::Retry_Cnt[currIdx]._time;
-            currIMsgCnt=currQMsgCnt=insertionNodeCnt=queryNodeCnt=0;
-            insertionDelay=queryDelay=0;
+    for (int i = 0; i < Stat::Retry_Cnt.size(); i++) {
+        sort(Stat::Retry_Cnt[i]._Qdelay.begin(), Stat::Retry_Cnt[i]._Qdelay.end());
+        sort(Stat::Retry_Cnt[i]._Udelay.begin(), Stat::Retry_Cnt[i]._Udelay.end());
+        retryHdlr<<Stat::Retry_Cnt[i]._time<<" "<<Stat::Retry_Cnt[i]._retryUpdate
+                <<" "<<Stat::Retry_Cnt[i]._retryQuery<<" ";
+        if(Stat::Retry_Cnt[i]._retryUpdate){
+            retryHdlr<<(FLOAT32)Stat::Retry_Cnt[i]._retryUMsg/(FLOAT32)Stat::Retry_Cnt[i]._retryUpdate<<" "
+                    <<Stat::Retry_Cnt[i]._Udelay[0]<<" "<<Stat::Retry_Cnt[i]._Udelay[Stat::Retry_Cnt[i]._Udelay.size()/2]
+                    <<" "<<Stat::Retry_Cnt[i]._Udelay[Stat::Retry_Cnt[i]._Udelay.size()-1]<<" ";
         }
-        if(Stat::Retry_Cnt[currIdx]._time == currTime){
-            //currNodeCnt++;
-            if(Stat::Retry_Cnt[currIdx]._operation=='I'||Stat::Retry_Cnt[currIdx]._operation=='U'){
-                currIMsgCnt += Stat::Retry_Cnt[currIdx]._retry;
-                insertionDelay += Stat::Retry_Cnt[currIdx]._delay;
-                insertionNodeCnt ++;
-            }
-            if(Stat::Retry_Cnt[currIdx]._operation=='Q'){
-                currQMsgCnt += Stat::Retry_Cnt[currIdx]._retry;
-                queryDelay += Stat::Retry_Cnt[currIdx]._delay;
-                queryNodeCnt++;
-            }
-                
+        else{
+            retryHdlr<<0<<" "<<0<<" "<<0<<" "<<0<<" ";
         }
-        currIdx++;
+        if(Stat::Retry_Cnt[i]._retryQuery){
+            retryHdlr<<(FLOAT32)Stat::Retry_Cnt[i]._retryQMsg/(FLOAT32)Stat::Retry_Cnt[i]._retryQuery<<" "
+                    <<Stat::Retry_Cnt[i]._Qdelay[0]<<" "<<Stat::Retry_Cnt[i]._Qdelay[Stat::Retry_Cnt[i]._Qdelay.size()/2]
+                    <<" "<<Stat::Retry_Cnt[i]._Qdelay[Stat::Retry_Cnt[i]._Qdelay.size()-1]<<endl;
+        }
+        else{
+            retryHdlr<<0<<" "<<0<<" "<<0<<" "<<0<<endl;
+        }
     }
+
 }

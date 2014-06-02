@@ -69,10 +69,9 @@ public:
 };
 
 struct Query_Latency{
-    FLOAT64 _delay;
+    FLOAT64 _total_delay; //avg query latency
     FLOAT64 _time;
-    char _operation;//'I','Q','U'
-    Query_Latency(char X, FLOAT64 time): _operation(X), _time(time) {}
+    UINT32 _count;
     bool operator < (const Query_Latency& query) const
     {
         return (_time < query._time);
@@ -80,11 +79,13 @@ struct Query_Latency{
 };
 
 struct Retry_Count{
-    FLOAT64 _delay;
-    UINT32 _retry;
+    vector<FLOAT64> _Qdelay;
+    vector<FLOAT64> _Udelay;
+    UINT32 _retryQuery;
+    UINT32 _retryUpdate;
+    UINT32  _retryQMsg;
+    UINT32 _retryUMsg;
     FLOAT64 _time;
-    char _operation;
-    Retry_Count(char X, FLOAT64 time): _operation(X), _time(time) {}
     bool operator < (const Retry_Count& retryCnt) const
     {
         return (_time < retryCnt._time);
@@ -100,7 +101,7 @@ public:
 	static vector<Query_Latency> Query_latency_time;
         static vector<Query_Latency> Insertion_latency_time; //count for insert and update
 	static vector<Retry_Count> Retry_Cnt;//count for both insertion and query retry
-        static vector<Retry_Count> DHT_Retry_time; //all K host failed, then a DHT retry
+        static vector<Retry_Count> DHT_RetryCnt; //all K host failed, then a DHT retry
         static vector<UINT32> Migration_per_node;
         /*PING overhead to maintain node table consistency
          *only record counts of extra ping during simulation

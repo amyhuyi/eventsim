@@ -34,7 +34,7 @@ UINT32 Settings::QueryHours =0;//# of hours query generation
 UINT32 Settings::UpdateHours =0;//# of hours update generation
 FLOAT64 Settings::QueryPerNode = 10000;
 FLOAT64 Settings::UpdatePerNode = 1000;
-string Settings::outFileName =NULL;
+string Settings::outFileName;
 FLOAT64 Settings::ChurnPerNode=0.01;
 /*!
  *  @brief Computes floor(log2(n))
@@ -158,7 +158,6 @@ void ParseArg(const char * argv)
 
 int main(int argc, const char* argv[])
 {
-    cout <<"here1" <<endl;
     EventScheduler::Inst()->AddEvent(new DummyEvent());
     cout <<"Initializing the network ..." <<endl;
     //Underlay::CreateInst("2220IXP_Prov4_IXP2_m_route.txt", "2220IXP_Prov4_IXP2_m_ASInfo.txt");
@@ -199,6 +198,7 @@ int main(int argc, const char* argv[])
     cout<<"Settings::UpdateHours="<<Settings::UpdateHours<<endl;//# of hours update generation
     cout<<"Settings::QueryPerNode="<<Settings::QueryPerNode<<endl;
     cout<<"Settings::UpdatePerNode="<<Settings::UpdatePerNode<<endl;
+     cout<<"Settings::ChurnPerNode="<<Settings::ChurnPerNode<<endl;
     /*
     for (int i = 0; i < Underlay::Inst()->global_node_table.size(); i++) {
         cout<<"for node "<<i <<" "<<Underlay::Inst()->global_node_table[i].getASIdx()<<endl;
@@ -222,12 +222,13 @@ int main(int argc, const char* argv[])
             && EventScheduler::Inst()->GetSize()>1){
 	Event * pevent = EventScheduler::Inst()->CurrentEvent();
 	//cout <<"queued jobs: " <<EventScheduler::Inst()->GetSize() <<" info: ";
-	pevent->PrintInfo();
+	//pevent->PrintInfo();
 	if (pevent->Callback()){
             delete pevent;
 	}
 	EventScheduler::Inst()->NextEvent();
     }
+    /*
     cout<<"Stat::Query_latency_time.size() "<<Stat::Query_latency_time.size()<<endl;
     for (int i = 0; i < Stat::Query_latency_time.size(); i++) {
        cout<<Stat::Query_latency_time[i]._delay<<" "<<Stat::Query_latency_time[i]._operation<<" "<<Stat::Query_latency_time[i]._time<<endl;
@@ -240,10 +241,20 @@ int main(int argc, const char* argv[])
     for (int i = 0; i < Stat::Retry_Cnt.size();i++) {
        cout<<Stat::Retry_Cnt[i]._retry<<" "<<Stat::Retry_Cnt[i]._operation<<" "<<Stat::Retry_Cnt[i]._time<<" "<<Stat::Retry_Cnt[i]._delay<<endl;
     }
+    
     for (int i = 0; i < Stat::Stat::DHT_Retry_time.size(); i++) {
        cout<<Stat::Stat::DHT_Retry_time[i]._retry<<" "<<Stat::Stat::DHT_Retry_time[i]._operation<<" "<<Stat::Stat::DHT_Retry_time[i]._time<<endl;
     }
+    */
     Underlay::Inst()->PrintRetryStat();
+    cout<<"Stat::Retry_Cnt.size()"<<Stat::Retry_Cnt.size()<<endl;
+    for (int i = 0; i < Stat::Retry_Cnt.size();i++) {
+       cout<<Stat::Retry_Cnt[i]._retry<<" "<<Stat::Retry_Cnt[i]._operation<<" "<<Stat::Retry_Cnt[i]._time<<" "<<Stat::Retry_Cnt[i]._delay<<endl;
+    }
+    
+    for (int i = 0; i < Stat::DHT_Retry_time.size(); i++) {
+       cout<<Stat::DHT_Retry_time[i]._retry<<" "<<Stat::DHT_Retry_time[i]._operation<<" "<<Stat::DHT_Retry_time[i]._time<<endl;
+    }
     /*for (int i = 0; i < 10; i++) {
         for(int j=0; j<10; j++)
             cout<<i+j+1<<" ";

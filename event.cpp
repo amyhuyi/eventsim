@@ -32,13 +32,18 @@ void Event::PrintInfo() {
 }
 DummyEvent::DummyEvent() : Event()
 {
-	_time_done = _time_created + 5;
+	_time_done = _time_created + 1;
 }
 
 bool DummyEvent::Callback()	// if return is true, this event can be deleted
 {
-	_time_done += 5;
+	_time_done += 1;
 	EventScheduler::Inst()->AddEvent(this);
+        UINT32 totalNodes = Underlay::Inst()->global_node_table.size();
+        if(_time_created < Settings::QueryHours)
+            Underlay::Inst()->generateWorkload(1,Settings::QueryPerNode*totalNodes,'Q');
+        if(_time_created<Settings::UpdateHours)
+        Underlay::Inst()->generateWorkload(1,Settings::UpdatePerNode*totalNodes,'U');
 	return false;
 }
 

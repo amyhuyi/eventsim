@@ -179,10 +179,12 @@ int main(int argc, const char* argv[])
     Underlay::Inst()->InitializeWorkload();
     cout<<"total # nodes "<<Underlay::Inst()->global_node_table.size()<<endl;
     //Settings::DHTHop = log10((FLOAT64)Underlay::Inst()->global_node_table.size());
+    /*
     if(Settings::QueryHours > Settings::UpdateHours)
         Settings::EndTime = Settings::QueryHours;
     else
         Settings::EndTime = Settings::UpdateHours;
+     * */
     cout<<"Settings::"<<endl;
     cout<<"Settings::EndTime="<<Settings::EndTime<<endl;
     cout<<"Settings::TestThreshold="<<Settings::TestThreshold<<endl;
@@ -213,11 +215,13 @@ int main(int argc, const char* argv[])
     if(Settings::ChurnHours)
         Underlay::Inst()->generateLeaveChurn(Settings::ChurnHours, Settings::ChurnPerNode*totalNodes, 
                 Settings::OnOffSession, Settings::OnOffRounds);
+    /*
     if(Settings::QueryHours)
         Underlay::Inst()->generateWorkload(Settings::QueryHours,Settings::QueryPerNode*totalNodes,'Q');
     if(Settings::UpdateHours)
         Underlay::Inst()->generateWorkload(Settings::UpdateHours,Settings::UpdatePerNode*totalNodes,'U');
-    
+     * */
+    cout <<"total queued jobs: " <<EventScheduler::Inst()->GetSize() <<" info: ";
     while ( EventScheduler::Inst()->GetCurrentTime() <= Settings::EndTime
             && EventScheduler::Inst()->GetSize()>1){
 	Event * pevent = EventScheduler::Inst()->CurrentEvent();
@@ -245,7 +249,7 @@ int main(int argc, const char* argv[])
        cout<<Stat::Stat::DHT_Retry_time[i]._retry<<" "<<Stat::Stat::DHT_Retry_time[i]._operation<<" "<<Stat::Stat::DHT_Retry_time[i]._time<<endl;
     }
     */
-    Underlay::Inst()->PrintRetryStat();
+    
     cout<<"Stat::Retry_Cnt.size()"<<Stat::Retry_Cnt.size()<<endl;
     for (int i = 0; i < Stat::Retry_Cnt.size();i++) {
        cout<<Stat::Retry_Cnt[i]._time<<" "<<Stat::Retry_Cnt[i]._retryUpdate<<" "<<Stat::Retry_Cnt[i]._retryQuery<<endl;
@@ -254,6 +258,8 @@ int main(int argc, const char* argv[])
     for (int i = 0; i < Stat::DHT_RetryCnt.size(); i++) {
        cout<<Stat::DHT_RetryCnt[i]._time<<" "<<Stat::DHT_RetryCnt[i]._retryUpdate<<" "<<Stat::DHT_RetryCnt[i]._retryQuery<<endl;
     }
+    Underlay::Inst()->PrintRetryStat();
+    Underlay::Inst()->PrintLatencyStat();
     /*for (int i = 0; i < 10; i++) {
         for(int j=0; j<10; j++)
             cout<<i+j+1<<" ";

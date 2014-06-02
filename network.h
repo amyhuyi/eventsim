@@ -126,6 +126,7 @@ public:
     void getNeighbors(UINT32 nodeIdx, set<UINT32> & neighborsIdx_v); // put all online neighbors into neighborsIdx_v
     void determineHost(UINT32 guid, set<UINT32>& _hostNodeIdx);
     void PrintRetryStat();
+    void PrintLatencyStat();
 };
 
 #endif

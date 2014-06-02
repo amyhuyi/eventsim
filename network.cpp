@@ -562,6 +562,7 @@ void Underlay::ReadInASInfo(const char* asFile) {
         asFileHdlr >> tier;
         asFileHdlr >> capacity;
         AS thisAS (i, tier, capacity);
+        //AS thisAS (i, tier, 1);
         as_v.push_back(thisAS);
     }
 }
@@ -809,4 +810,41 @@ void Underlay::PrintRetryStat()
         }
     }
 
+}
+
+void Underlay::PrintLatencyStat(){
+    if(Stat::Query_latency_time.size()==0 && Stat::Insertion_latency_time.size()==0){
+        cout<<"Empty both: Query_latency_time.size() = "<<Stat::Query_latency_time.size()
+                <<"Stat::Insertion_latency_time.size() = "<<Stat::Insertion_latency_time.size()<<endl;
+        return;
+    }
+    UINT32 queryTimeCnt = Stat::Query_latency_time.size();
+    UINT32 insertionTimeCnt = Stat::Insertion_latency_time.size();
+    cout<<"print latency stat\n";
+    //format time nodeCnt querymsgCnt InsertionMsgCnt totalMsgCnt
+    string latencyFile = Settings::outFileName;
+    latencyFile += ".latency";
+    ofstream latencyHdlr;
+    latencyHdlr.open(latencyFile.c_str(),ios::out | ios::in | ios:: trunc);
+    UINT32 currIdx=0;
+    while (currIdx<queryTimeCnt || currIdx<insertionTimeCnt) {
+        if(currIdx<queryTimeCnt){
+            latencyHdlr<<'Q'<<" "<<Stat::Query_latency_time[currIdx]._time<<" "<<Stat::Query_latency_time[currIdx]._count
+                    <<" "<<Stat::Query_latency_time[currIdx]._total_delay/(FLOAT64)Stat::Query_latency_time[currIdx]._count<<" ";
+        }
+        else{
+            latencyHdlr<<'Q'<<" "<<0<<" "<<0<<" "<<0<<" ";
+        }
+        if(currIdx<insertionTimeCnt){
+            latencyHdlr<<'I'<<" "<<Stat::Insertion_latency_time[currIdx]._time<<" "<<Stat::Insertion_latency_time[currIdx]._count
+                    <<" "<<Stat::Insertion_latency_time[currIdx]._total_delay/(FLOAT64)Stat::Insertion_latency_time[currIdx]._count<<" ";
+        }
+        else{
+            latencyHdlr<<'I'<<" "<<0<<" "<<0<<" "<<0<<" ";
+        }
+        latencyHdlr<<endl;
+        currIdx++;
+    }
+
+    
 }

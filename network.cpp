@@ -782,7 +782,7 @@ void Underlay::PrintRetryStat()
     cout<<"print retry stat\n";
     //format time nodeCnt querymsgCnt InsertionMsgCnt totalMsgCnt
     string retryFile = Settings::outFileName;
-    retryFile += ".retryStats";
+    retryFile += ".retry";
     ofstream retryHdlr;
     retryHdlr.open(retryFile.c_str(),ios::out | ios::in | ios:: trunc);
 

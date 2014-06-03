@@ -184,7 +184,7 @@ int main(int argc, const char* argv[])
         Settings::EndTime = Settings::QueryHours;
     else
         Settings::EndTime = Settings::UpdateHours;
-     * */
+    */
     cout<<"Settings::"<<endl;
     cout<<"Settings::EndTime="<<Settings::EndTime<<endl;
     cout<<"Settings::TestThreshold="<<Settings::TestThreshold<<endl;

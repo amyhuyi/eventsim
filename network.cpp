@@ -213,7 +213,7 @@ FLOAT64 AS::calQueryDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyIngloba
         return minDistance*2;
     }
 }
-UINT32 AS::getIdxQueryLatency(FLOAT64 currTime, bool isInsertion){
+UINT32 Underlay::getIdxQueryLatency(FLOAT64 currTime, bool isInsertion){
     if(isInsertion){
         for (int i = 0; i < Stat::Insertion_latency_time.size(); i++) {
             if (Stat::Insertion_latency_time[i]._time == currTime)
@@ -228,8 +228,7 @@ UINT32 AS::getIdxQueryLatency(FLOAT64 currTime, bool isInsertion){
     }
     Query_Latency aQueryLatency;
     aQueryLatency._time = currTime;
-    aQueryLatency._count=0;
-    aQueryLatency._total_delay=0;
+    aQueryLatency._delay_v.clear();
     if(isInsertion){
         Stat::Insertion_latency_time.push_back(aQueryLatency);
         return (Stat::Insertion_latency_time.size()-1);
@@ -240,7 +239,7 @@ UINT32 AS::getIdxQueryLatency(FLOAT64 currTime, bool isInsertion){
     }
 }
 
-UINT32 AS::getIdxRetryCnt(FLOAT64 currTime, bool isDHTretry){
+UINT32 Underlay::getIdxRetryCnt(FLOAT64 currTime, bool isDHTretry){
     if(isDHTretry){
         for(int i=0; i<Stat::DHT_RetryCnt.size(); i++){
             if (Stat::DHT_RetryCnt[i]._time == currTime) {
@@ -261,6 +260,8 @@ UINT32 AS::getIdxRetryCnt(FLOAT64 currTime, bool isDHTretry){
     aRetryCount._retryQuery=0;
     aRetryCount._retryUMsg=0;
     aRetryCount._retryUpdate=0;
+    aRetryCount._issuedQuery=0;
+    aRetryCount._issuedUpdate=0;
     aRetryCount._Qdelay.clear();
     aRetryCount._Udelay.clear();
     if(isDHTretry){
@@ -302,11 +303,11 @@ void AS::calCorrectHost(set<UINT32> localHostset, set<UINT32> globalHostset, cha
         currDelay = calQueryDelay(onlyInlocal, onlyInglobal, correctHost);
     }
     //statistics accounting on retry
-    bool shouldUpdateLocalView = false, shouldInsertRetryCnt = false;
+    bool shouldInsertRetryCnt = false;
     UINT32 currRetryMsg=0;
     UINT32 idxRetryCnt=0;
     if(correctHost.size()==0){
-        idxRetryCnt = getIdxRetryCnt(EventScheduler::Inst()->GetCurrentTime(), true);
+        idxRetryCnt = Underlay::Inst()->getIdxRetryCnt(EventScheduler::Inst()->GetCurrentTime(), true);
         if(opt == 'I' || opt == 'U' ){
             Stat::DHT_RetryCnt[idxRetryCnt]._retryUpdate++;
             Stat::DHT_RetryCnt[idxRetryCnt]._Udelay.push_back(currDelay);
@@ -315,23 +316,20 @@ void AS::calCorrectHost(set<UINT32> localHostset, set<UINT32> globalHostset, cha
             Stat::DHT_RetryCnt[idxRetryCnt]._retryQuery++;
             Stat::DHT_RetryCnt[idxRetryCnt]._Qdelay.push_back(currDelay);
         }    
-        shouldUpdateLocalView=true;
         shouldInsertRetryCnt=true;
     }    
     if (correctHost.size() < localHostset.size()) {
         if(opt == 'I' || opt == 'U' || (opt == 'Q'&& correctHost.size()==0)){
             currRetryMsg = (localHostset.size()- correctHost.size());
             shouldInsertRetryCnt =true;
-            shouldUpdateLocalView=true;
         }
         else if(opt == 'Q' && getMinDistance(onlyInlocal)< getMinDistance(correctHost)){
             currRetryMsg = localHostset.size()-1; //assume query one nearest host fail, retry all the other available host
             shouldInsertRetryCnt =true;
-            shouldUpdateLocalView=true;
         }
     }
     if(shouldInsertRetryCnt){
-        idxRetryCnt = getIdxRetryCnt(EventScheduler::Inst()->GetCurrentTime(), false);
+        idxRetryCnt = Underlay::Inst()->getIdxRetryCnt(EventScheduler::Inst()->GetCurrentTime(), false);
         if(opt == 'I'|| opt == 'U'){
             Stat::Retry_Cnt[idxRetryCnt]._Udelay.push_back(currDelay);
             Stat::Retry_Cnt[idxRetryCnt]._retryUpdate++;
@@ -342,33 +340,27 @@ void AS::calCorrectHost(set<UINT32> localHostset, set<UINT32> globalHostset, cha
             Stat::Retry_Cnt[idxRetryCnt]._retryQuery++;
             Stat::Retry_Cnt[idxRetryCnt]._retryQMsg += currRetryMsg;
         }
-    }
-    else{
-        //statistics accounting on normal delay
-        UINT32 idxLatency=0;
-        if (opt == 'I' || opt == 'U') {
-            idxLatency = getIdxQueryLatency(EventScheduler::Inst()->GetCurrentTime(), true);
-            Stat::Insertion_latency_time[idxLatency]._count++;
-            Stat::Insertion_latency_time[idxLatency]._total_delay += currDelay;
-        } 
-        else {
-            idxLatency = getIdxQueryLatency(EventScheduler::Inst()->GetCurrentTime(), false);
-            Stat::Query_latency_time[idxLatency]._count++;
-            Stat::Query_latency_time[idxLatency]._total_delay += currDelay;
-        }
-    }
-    //update local view of node table
-    if(shouldUpdateLocalView){
+        //update local view of node table
         for (int i = 0; i < onlyInlocal.size(); i++) {
-        assert(_local_view_offNodes.find(onlyInlocal[i]) == _local_view_offNodes.end());
-        if(Underlay::Inst()->global_node_table[onlyInlocal[i]].isInService()==false)
-            _local_view_offNodes.insert(onlyInlocal[i]);
-        }
+            assert(_local_view_offNodes.find(onlyInlocal[i]) == _local_view_offNodes.end());
+            if(Underlay::Inst()->global_node_table[onlyInlocal[i]].isInService()==false)
+                _local_view_offNodes.insert(onlyInlocal[i]);
+            }
         for (int i = 0; i < onlyInglobal.size(); i++) {
-        assert(Underlay::Inst()->global_node_table[onlyInglobal[i]].isInService());
-        if(_local_view_offNodes.find(onlyInglobal[i])!= _local_view_offNodes.end())
-            _local_view_offNodes.erase(_local_view_offNodes.find(onlyInglobal[i]));
-        }
+            assert(Underlay::Inst()->global_node_table[onlyInglobal[i]].isInService());
+            if(_local_view_offNodes.find(onlyInglobal[i])!= _local_view_offNodes.end())
+                _local_view_offNodes.erase(_local_view_offNodes.find(onlyInglobal[i]));
+            }
+    }
+    //latency statistics accounting
+    UINT32 idxLatency=0;
+    if (opt == 'I' || opt == 'U') {
+        idxLatency = Underlay::Inst()->getIdxQueryLatency(EventScheduler::Inst()->GetCurrentTime(), true);
+        Stat::Insertion_latency_time[idxLatency]._delay_v.push_back(currDelay);
+    } 
+    else {
+        idxLatency = Underlay::Inst()->getIdxQueryLatency(EventScheduler::Inst()->GetCurrentTime(), false);
+        Stat::Query_latency_time[idxLatency]._delay_v.push_back(currDelay);
     }
 }
 
@@ -678,6 +670,16 @@ UINT32 Underlay::generateWorkload(UINT32 workloadLength, FLOAT64 mean_arrival, c
                 i++;
             }
         }
+        UINT32 idxDHTCnt = Underlay::Inst()->getIdxRetryCnt(EventScheduler::Inst()->GetCurrentTime(), true);
+        UINT32 idxRetryCnt = Underlay::Inst()->getIdxRetryCnt(EventScheduler::Inst()->GetCurrentTime(), false);
+        if(opt == 'I' || opt == 'U' ){
+            Stat::DHT_RetryCnt[idxDHTCnt]._issuedUpdate = currRound;
+            Stat::Retry_Cnt[idxRetryCnt]._issuedUpdate = currRound;
+        }
+        else if(opt == 'Q'){
+            Stat::DHT_RetryCnt[idxDHTCnt]._issuedQuery = currRound;
+            Stat::Retry_Cnt[idxRetryCnt]._issuedQuery = currRound;
+        } 
         currBeginTime++;
         generatedCnt += currRound;
     }
@@ -772,79 +774,4 @@ void Underlay::SynchNetwork(){
     for (int i = 0; i < as_v.size(); i++) {
         as_v[i]._local_view_offNodes=curr_offNodes;
     }
-}
-void Underlay::PrintRetryStat()
-{   
-    if(!Stat::Retry_Cnt.size()){
-        cout<<"Empty Stat::Retry_Count_time.size() = "<<Stat::Retry_Cnt.size()<<endl;
-        return;
-    }
-    cout<<"print retry stat\n";
-    //format time nodeCnt querymsgCnt InsertionMsgCnt totalMsgCnt
-    string retryFile = Settings::outFileName;
-    retryFile += ".retry";
-    ofstream retryHdlr;
-    retryHdlr.open(retryFile.c_str(),ios::out | ios::in | ios:: trunc);
-
-    sort(Stat::Retry_Cnt.begin(),Stat::Retry_Cnt.end());
-    for (int i = 0; i < Stat::Retry_Cnt.size(); i++) {
-        sort(Stat::Retry_Cnt[i]._Qdelay.begin(), Stat::Retry_Cnt[i]._Qdelay.end());
-        sort(Stat::Retry_Cnt[i]._Udelay.begin(), Stat::Retry_Cnt[i]._Udelay.end());
-        retryHdlr<<Stat::Retry_Cnt[i]._time<<" "<<Stat::Retry_Cnt[i]._retryUpdate
-                <<" "<<Stat::Retry_Cnt[i]._retryQuery<<" ";
-        if(Stat::Retry_Cnt[i]._retryUpdate){
-            retryHdlr<<(FLOAT32)Stat::Retry_Cnt[i]._retryUMsg/(FLOAT32)Stat::Retry_Cnt[i]._retryUpdate<<" "
-                    <<Stat::Retry_Cnt[i]._Udelay[0]<<" "<<Stat::Retry_Cnt[i]._Udelay[Stat::Retry_Cnt[i]._Udelay.size()/2]
-                    <<" "<<Stat::Retry_Cnt[i]._Udelay[Stat::Retry_Cnt[i]._Udelay.size()-1]<<" ";
-        }
-        else{
-            retryHdlr<<0<<" "<<0<<" "<<0<<" "<<0<<" ";
-        }
-        if(Stat::Retry_Cnt[i]._retryQuery){
-            retryHdlr<<(FLOAT32)Stat::Retry_Cnt[i]._retryQMsg/(FLOAT32)Stat::Retry_Cnt[i]._retryQuery<<" "
-                    <<Stat::Retry_Cnt[i]._Qdelay[0]<<" "<<Stat::Retry_Cnt[i]._Qdelay[Stat::Retry_Cnt[i]._Qdelay.size()/2]
-                    <<" "<<Stat::Retry_Cnt[i]._Qdelay[Stat::Retry_Cnt[i]._Qdelay.size()-1]<<endl;
-        }
-        else{
-            retryHdlr<<0<<" "<<0<<" "<<0<<" "<<0<<endl;
-        }
-    }
-
-}
-
-void Underlay::PrintLatencyStat(){
-    if(Stat::Query_latency_time.size()==0 && Stat::Insertion_latency_time.size()==0){
-        cout<<"Empty both: Query_latency_time.size() = "<<Stat::Query_latency_time.size()
-                <<"Stat::Insertion_latency_time.size() = "<<Stat::Insertion_latency_time.size()<<endl;
-        return;
-    }
-    UINT32 queryTimeCnt = Stat::Query_latency_time.size();
-    UINT32 insertionTimeCnt = Stat::Insertion_latency_time.size();
-    cout<<"print latency stat\n";
-    //format time nodeCnt querymsgCnt InsertionMsgCnt totalMsgCnt
-    string latencyFile = Settings::outFileName;
-    latencyFile += ".latency";
-    ofstream latencyHdlr;
-    latencyHdlr.open(latencyFile.c_str(),ios::out | ios::in | ios:: trunc);
-    UINT32 currIdx=0;
-    while (currIdx<queryTimeCnt || currIdx<insertionTimeCnt) {
-        if(currIdx<queryTimeCnt){
-            latencyHdlr<<'Q'<<" "<<Stat::Query_latency_time[currIdx]._time<<" "<<Stat::Query_latency_time[currIdx]._count
-                    <<" "<<Stat::Query_latency_time[currIdx]._total_delay/(FLOAT64)Stat::Query_latency_time[currIdx]._count<<" ";
-        }
-        else{
-            latencyHdlr<<'Q'<<" "<<0<<" "<<0<<" "<<0<<" ";
-        }
-        if(currIdx<insertionTimeCnt){
-            latencyHdlr<<'I'<<" "<<Stat::Insertion_latency_time[currIdx]._time<<" "<<Stat::Insertion_latency_time[currIdx]._count
-                    <<" "<<Stat::Insertion_latency_time[currIdx]._total_delay/(FLOAT64)Stat::Insertion_latency_time[currIdx]._count<<" ";
-        }
-        else{
-            latencyHdlr<<'I'<<" "<<0<<" "<<0<<" "<<0<<" ";
-        }
-        latencyHdlr<<endl;
-        currIdx++;
-    }
-
-    
 }

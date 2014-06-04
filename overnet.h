@@ -69,9 +69,8 @@ public:
 };
 
 struct Query_Latency{
-    FLOAT64 _total_delay; //avg query latency
     FLOAT64 _time;
-    UINT32 _count;
+    vector<FLOAT64> _delay_v;
     bool operator < (const Query_Latency& query) const
     {
         return (_time < query._time);
@@ -85,6 +84,8 @@ struct Retry_Count{
     UINT32 _retryUpdate;
     UINT32  _retryQMsg;
     UINT32 _retryUMsg;
+    UINT32 _issuedQuery;
+    UINT32 _issuedUpdate;
     FLOAT64 _time;
     bool operator < (const Retry_Count& retryCnt) const
     {
@@ -110,6 +111,15 @@ public:
         static vector<UINT32> Ping_per_node; 
         static UINT32 Premature_joins;
         static UINT32 Premature_leaves;
+        
+        static Stat* Inst();
+        ~Stat();
+        
+        void PrintRetryStat();
+        void PrintLatencyStat();
+private:
+        static Stat* _stat_ptr;
+        Stat();
 };
 
 #endif

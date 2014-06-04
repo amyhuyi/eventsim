@@ -39,9 +39,9 @@ bool DummyEvent::Callback()	// if return is true, this event can be deleted
 {
 	
         UINT32 totalNodes = Underlay::Inst()->global_node_table.size();
-        if(_time_done < Settings::QueryHours)
+        if(_time_done <= Settings::QueryHours)
             Underlay::Inst()->generateWorkload(1,Settings::QueryPerNode*totalNodes,'Q');
-        if(_time_done<Settings::UpdateHours)
+        if(_time_done <= Settings::UpdateHours)
         Underlay::Inst()->generateWorkload(1,Settings::UpdatePerNode*totalNodes,'U');
         _time_done += 1;
 	EventScheduler::Inst()->AddEvent(this);

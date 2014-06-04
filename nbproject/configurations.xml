@@ -87,6 +87,7 @@
       <itemPath>event_scheduler.cpp</itemPath>
       <itemPath>main.cpp</itemPath>
       <itemPath>network.cpp</itemPath>
+      <itemPath>overnet.cpp</itemPath>
       <itemPath>util.cpp</itemPath>
     </logicalFolder>
     <logicalFolder name="TestFiles"
@@ -262,6 +263,8 @@
       </item>
       <item path="network.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="overnet.cpp" ex="false" tool="1" flavor2="0">
+      </item>
       <item path="overnet.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="util.cpp" ex="false" tool="1" flavor2="0">
@@ -430,6 +433,8 @@
       <item path="network.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="network.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="overnet.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="overnet.h" ex="false" tool="3" flavor2="0">
       </item>

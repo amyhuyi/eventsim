@@ -60,6 +60,7 @@ OBJECTFILES= \
 	${OBJECTDIR}/genran/utility.o \
 	${OBJECTDIR}/main.o \
 	${OBJECTDIR}/network.o \
+	${OBJECTDIR}/overnet.o \
 	${OBJECTDIR}/util.o
 
 
@@ -211,6 +212,11 @@ ${OBJECTDIR}/network.o: network.cpp
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
 	$(COMPILE.cc) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/network.o network.cpp
+
+${OBJECTDIR}/overnet.o: overnet.cpp 
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.cc) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/overnet.o overnet.cpp
 
 ${OBJECTDIR}/util.o: util.cpp 
 	${MKDIR} -p ${OBJECTDIR}

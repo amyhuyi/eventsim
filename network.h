@@ -58,8 +58,6 @@ private:
     FLOAT64 getMinDistance(vector<UINT32> correctHost);
     FLOAT64 calInsertDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost);
     FLOAT64 calQueryDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost);
-    UINT32 getIdxRetryCnt(FLOAT64 currTime, bool isDHTretry);
-    UINT32 getIdxQueryLatency(FLOAT64 currTime, bool isInsertion);
 public:
     
     AS(UINT32 asindex, UINT32 tier, UINT32 capacity);
@@ -125,8 +123,8 @@ public:
     UINT32 migrationOverhead4Leave(UINT32 nodeIdx);
     void getNeighbors(UINT32 nodeIdx, set<UINT32> & neighborsIdx_v); // put all online neighbors into neighborsIdx_v
     void determineHost(UINT32 guid, set<UINT32>& _hostNodeIdx);
-    void PrintRetryStat();
-    void PrintLatencyStat();
+    UINT32 getIdxRetryCnt(FLOAT64 currTime, bool isDHTretry);
+    UINT32 getIdxQueryLatency(FLOAT64 currTime, bool isInsertion);
 };
 
 #endif

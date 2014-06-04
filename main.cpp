@@ -258,8 +258,8 @@ int main(int argc, const char* argv[])
     for (int i = 0; i < Stat::DHT_RetryCnt.size(); i++) {
        cout<<Stat::DHT_RetryCnt[i]._time<<" "<<Stat::DHT_RetryCnt[i]._retryUpdate<<" "<<Stat::DHT_RetryCnt[i]._retryQuery<<endl;
     }
-    Underlay::Inst()->PrintRetryStat();
-    Underlay::Inst()->PrintLatencyStat();
+    Stat::Inst()->PrintRetryStat();
+    Stat::Inst()->PrintLatencyStat();
     /*for (int i = 0; i < 10; i++) {
         for(int j=0; j<10; j++)
             cout<<i+j+1<<" ";

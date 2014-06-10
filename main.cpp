@@ -20,7 +20,7 @@ vector<UINT32> Stat::Migration_per_node;
 UINT32 Stat::Premature_joins=0;
 UINT32 Stat::Premature_leaves=0;
 
-FLOAT64 Settings::EndTime = 5000;
+FLOAT64 Settings::EndTime = 50;
 FLOAT64 Settings::TestThreshold = 0.1;
 UINT32 Settings::TotalVirtualGUID = 1000000000;
 UINT32 Settings::TotalActiveGUID = 10000;	// 
@@ -245,8 +245,7 @@ int main(int argc, const char* argv[])
                 Settings::OnOffSession, Settings::OnOffRounds);
     cout <<"EventScheduler::Inst()->GetCurrentTime() =" <<EventScheduler::Inst()->GetCurrentTime()<<endl;
     
-    while ( EventScheduler::Inst()->GetCurrentTime() <= Settings::EndTime
-            && (EventScheduler::Inst()->GetSize()>1 || EventScheduler::Inst()->GetCurrentTime()<=1)){
+    while ( EventScheduler::Inst()->GetCurrentTime() <= Settings::EndTime){
 	Event * pevent = EventScheduler::Inst()->CurrentEvent();
 	//cout <<"queued jobs: " <<EventScheduler::Inst()->GetSize() <<" info: ";
 	pevent->PrintInfo();

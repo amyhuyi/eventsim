@@ -65,7 +65,9 @@ public:
 	static UINT32 TotalActiveGUID;
         static UINT32 NeighborSize;
         static UINT32 DHTHop;
-        static UINT32 GNRS_K;
+        static UINT32 GNRS_K; //global k
+        static UINT32 Local_K; //consists of nodes in the insertion AS 
+        static UINT32 Regional_K; // consists of nodes in the same country
 };
 
 struct Query_Latency{

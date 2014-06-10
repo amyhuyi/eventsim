@@ -16,37 +16,41 @@
 class GUID
 {
 private:
-	UINT32 _guid;   //unique for each GUID
-	UINT32 _objID;  //hash value of GUID into GNRS space, an objID may corresponds to multiple GUID
+	
+	UINT32 _vphostIdx;  //index of the virtual primary host into global node table
 	FLOAT64 _last_update_time;
         UINT32 _address_asIdx;      // current AS Idx the GUID is attached to, which is the AS inserted this GUID
 public:
+        UINT32 _guid;   //unique for each GUID, a hash value in GNRS space
         GUID (UINT32 id, UINT32 asIdx, FLOAT64 time); // compute objID from GUID and GNRS space range
 	~GUID();
-        bool operator < (const GUID & guid1);
-	UINT32 GetGUID();
-        UINT32 GetobjID();
-        FLOAT64 GetLastUpdateTime ();
-        UINT32 GetAddrASIdx();
-        void UpdateAddrASIdx(UINT32 newASIdx, FLOAT64 time);
+	UINT32 getGUID();
+        UINT32 getvphostIdx();
+        FLOAT64 getLastUpdateTime ();
+        UINT32 getAddrASIdx();
+        void updateAddrASIdx(UINT32 newASIdx, FLOAT64 time);
 };
 
 class Node{
 private:
-    UINT32 _nodeIdx;
+    
+    UINT32 _nodeIdx; //index in the global node table
     bool _in_service;
     UINT32 _asIdx;
     FLOAT64 _last_update_time;
 public:
-    Node (UINT32 nodeIdx, UINT32 asIdx, FLOAT64 time);
+    UINT32 _hashID; //hash value of the node in GNRS space, uniquely identify a node
+    Node (UINT32 hashID, UINT32 asIdx, FLOAT64 time);
     ~Node();
-    bool operator < (Node node1);
     bool isInService();
     void setInService(FLOAT64 time);
     void setOffService(FLOAT64 time);
     UINT32 getASIdx();
+    UINT32 getNodeIdx();
+    UINT32 getHashID();
+    void setNodeIdx( UINT32 index);
 };
-   
+bool NodeSortPredicate( const Node d1, const Node d2);
 
 class AS
 {
@@ -54,19 +58,23 @@ private:
     UINT32 _tier;
     UINT32 _capacity;
     UINT32 _asIdx;
+    UINT32 _asNum;
+    string _asCntry;
     FLOAT64 getMaxDistance(vector<UINT32> correctHost);
     FLOAT64 getMinDistance(vector<UINT32> correctHost);
     FLOAT64 calInsertDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost);
     FLOAT64 calQueryDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost);
 public:
     
-    AS(UINT32 asindex, UINT32 tier, UINT32 capacity);
+    AS(UINT32 asindex, UINT32 tier, UINT32 capacity, UINT32 asNum, string asCountry);
     set <UINT32> _myNodes; //index of my nodes in the global_node_table
     set <UINT32> _local_view_offNodes; // local view of offline nodes
     ~AS();
     UINT32 getCapacity();
     UINT32 getTier();
-    bool initMyNodes();
+    UINT32 getASNum();
+    UINT32 getASIndex();
+    string getASCntry();
     bool isGNRSMember();
     void joinGNRS(FLOAT64 lifetime);    //initialize all nodes in service
     void leaveGNRS(FLOAT64 offtime);   //remove all nodes from service
@@ -75,7 +83,6 @@ public:
     bool insertGUID(UINT32 guid, FLOAT64 time);//time is the absolute finish time
     bool queryGUID(UINT32 guid, FLOAT64 time);
     bool updateGUID(UINT32 guid, FLOAT64 time);
-    void determineHost(UINT32 guid, set<UINT32> & _hostNodeIdx);
     void beNotifedAjoin(UINT32 nodeIdx);
     void beNotifedAleave(UINT32 nodeIdx);
     void calCorrectHost(set<UINT32> localHostset, set<UINT32> globalHostset, char opt);
@@ -85,9 +92,9 @@ class GNRSOperationMessage : public Message
 {
 private:
     UINT32 _asIdx;
-    UINT32 _guid;
+    UINT32 _guidIdx;
 public:
-	GNRSOperationMessage (MsgType type, UINT32 asIdx, UINT32 guid, FLOAT64 time); 
+	GNRSOperationMessage (MsgType type, UINT32 asIdx, UINT32 guidIdx, FLOAT64 time); 
 	virtual bool Callback();            
 };
 
@@ -100,14 +107,18 @@ private:
     UINT32 *as_dist_matx;           //shortest distance matrix
     UINT32 *as_pre_matx;             //predicate matrix for path recompute: the last hop to reach destination
     Underlay(const char* routeFile, const char* asFile);
+    bool isAvailable(UINT32 nodeIdx, int asIdx); //check node availability from global or local AS view
+    void determineLocalHost(UINT32 guidIdx, set<UINT32>& _hostNodeIdx, int asIdx);
+    void determineNonLocalHost(UINT32 guidIdx, set<UINT32>& _hostNodeIdx, int asIdx);
+    void determineHostNoRegional(UINT32 guidIdx, set<UINT32>& _hostNodeIdx, int asIdx);
 public:
-    
+    UINT32 getvpHostIdx(UINT32 guid, UINT32 start_idx, UINT32 end_idx);
     vector<Node> global_node_table; //sorted based on node ID
     vector<AS> as_v;
     vector<GUID> global_guid_list;
     static Underlay* Inst();
     static void CreateInst(const char* routeFile, const char* asFile);
-    
+    UINT32 numericDistance(UINT32 hashID1, UINT32 hashID2);
     ~Underlay();
     UINT32 GetNumOfAS();
     UINT32 GetNumOfNode();
@@ -122,7 +133,7 @@ public:
     UINT32 migrationOverhead4Join(UINT32 nodeIdx);
     UINT32 migrationOverhead4Leave(UINT32 nodeIdx);
     void getNeighbors(UINT32 nodeIdx, set<UINT32> & neighborsIdx_v); // put all online neighbors into neighborsIdx_v
-    void determineHost(UINT32 guid, set<UINT32>& _hostNodeIdx);
+    void determineHost(UINT32 guidIdx, set<UINT32>& _hostNodeIdx, int asIdx);
     UINT32 getIdxRetryCnt(FLOAT64 currTime, bool isDHTretry);
     UINT32 getIdxQueryLatency(FLOAT64 currTime, bool isInsertion);
 };

@@ -27,6 +27,8 @@ UINT32 Settings::TotalActiveGUID = 10000;	//
 UINT32 Settings::NeighborSize =0; //full range neighbor size if undefined in command line, use default 2*ceil(K/2)
 UINT32 Settings::DHTHop = 5;//estimated hops for a DHT path
 UINT32 Settings::GNRS_K =5;
+UINT32 Settings::Local_K =1;
+UINT32 Settings::Regional_K =1;
 FLOAT64 Settings::OnOffSession =10;//session length for churn
 UINT32 Settings::OnOffRounds=0;//0: leave, 1: leave+join, 2: leave+join+leave...
 UINT32 Settings::ChurnHours =0;//# of consecutive hours of churn generation
@@ -75,6 +77,18 @@ void ParseArg(const char * argv)
 	stringstream ss (stringstream::in | stringstream::out);
 	ss <<arg.substr(8);
 	ss >>Settings::GNRS_K;
+    }
+    else if (arg.find("local_k=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(8);
+	ss >>Settings::Local_K;
+    }
+    else if (arg.find("regional_k=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(11);
+	ss >>Settings::Regional_K;
     }
     else if (arg.find("endtime=") != string::npos)
     {
@@ -160,23 +174,38 @@ int main(int argc, const char* argv[])
 {
     EventScheduler::Inst()->AddEvent(new DummyEvent());
     cout <<"Initializing the network ..." <<endl;
-    //Underlay::CreateInst("2220IXP_Prov4_IXP2_m_route.txt", "2220IXP_Prov4_IXP2_m_ASInfo.txt");
-    //Underlay::CreateInst("2220SQ_Prov4_m_route.txt", "2220SQ_Prov4_m_ASInfo.txt");
     //argv[1]: routeFileName, argv[2]:asInfoFileName
     Underlay::CreateInst(argv[1], argv[2]);
+    for (int i = 0; i < Underlay::Inst()->as_v.size(); i++) {
+        cout<<"as Num = "<<Underlay::Inst()->as_v[i].getASNum()<<" tier = "<<Underlay::Inst()->as_v[i].getTier()
+                << "capacity = "<< Underlay::Inst()->as_v[i].getCapacity()<<" index= "<<Underlay::Inst()->as_v[i].getASIndex()
+                <<endl;
+        //for (int j = 0; j < Underlay::Inst()->as_v.size(); j++) {
+        //    cout<<"latency "<<i<<" to "<<j<<" = "<<Underlay::Inst()->getLatency(i,j)<<endl;
+        //}
+    }
+    
+    for (int i = 0; i < Underlay::Inst()->global_node_table.size(); i++) {
+        cout<<"for node "<<Underlay::Inst()->global_node_table[i].getHashID() <<" "
+                <<Underlay::Inst()->global_node_table[i].getNodeIdx() <<" "
+                <<Underlay::Inst()->global_node_table[i].getASIdx()<<" "
+                <<Underlay::Inst()->as_v[Underlay::Inst()->global_node_table[i].getASIdx()].getASCntry()<<endl;
+    }
+    
     if(argc>3){
         for (int i = 3; i < argc; i++) {
             ParseArg(argv[i]);
         }
     }
-    /*for (int i = 0; i < Underlay::Inst()->as_v.size(); i++) {
-        cout<<"for as "<<i<<" tier = "<<Underlay::Inst()->as_v[i]._asIdx<<endl;
-        for (int j = 0; j < Underlay::Inst()->as_v.size(); j++) {
-            cout<<"latency "<<i<<" to "<<j<<" = "<<Underlay::Inst()->getLatency(i,j)<<endl;
-        }
-    }*/
-    
     Underlay::Inst()->InitializeWorkload();
+    
+    
+    for (int i = 0; i < Underlay::Inst()->global_guid_list.size(); i++) {
+        cout<<"for guid "<<Underlay::Inst()->global_guid_list[i].getGUID() <<" "
+                <<Underlay::Inst()->global_guid_list[i].getvphostIdx()<<" "<<
+                Underlay::Inst()->global_node_table[Underlay::Inst()->global_guid_list[i].getvphostIdx()].getHashID()<<endl;
+    }
+    
     cout<<"total # nodes "<<Underlay::Inst()->global_node_table.size()<<endl;
     //Settings::DHTHop = log10((FLOAT64)Underlay::Inst()->global_node_table.size());
     /*
@@ -193,6 +222,8 @@ int main(int argc, const char* argv[])
     cout<<"Settings::NeighborSize="<<Settings::NeighborSize<<endl; //full range neighbor size if undefined in command line, use default 2*ceil(K/2)
     cout<<"Settings::DHTHop="<<Settings::DHTHop<<endl;//estimated hops for a DHT path
     cout<<"Settings::GNRS_K="<<Settings::GNRS_K<<endl;
+    cout<<"Settings::Local_K="<<Settings::Local_K<<endl;
+    cout<<"Settings::Regional_K="<<Settings::Regional_K<<endl;
     cout<<"Settings::OnOffSession="<<Settings::OnOffSession<<endl;//session length for churn
     cout<<"Settings::OnOffRounds="<<Settings::OnOffRounds<<endl;//0: leave, 1: leave+join, 2: leave+join+leave...
     cout<<"Settings::ChurnHours="<<Settings::ChurnHours<<endl;//# of consecutive hours of churn generation
@@ -201,10 +232,7 @@ int main(int argc, const char* argv[])
     cout<<"Settings::QueryPerNode="<<Settings::QueryPerNode<<endl;
     cout<<"Settings::UpdatePerNode="<<Settings::UpdatePerNode<<endl;
      cout<<"Settings::ChurnPerNode="<<Settings::ChurnPerNode<<endl;
-    /*
-    for (int i = 0; i < Underlay::Inst()->global_node_table.size(); i++) {
-        cout<<"for node "<<i <<" "<<Underlay::Inst()->global_node_table[i].getASIdx()<<endl;
-    }*/
+    
     for (UINT32 i = 0; i < Underlay::Inst()->GetNumOfNode(); i++) {
         Stat::Migration_per_node.push_back(0);
         Stat::Ping_per_node.push_back(0);
@@ -215,15 +243,10 @@ int main(int argc, const char* argv[])
     if(Settings::ChurnHours)
         Underlay::Inst()->generateLeaveChurn(Settings::ChurnHours, Settings::ChurnPerNode*totalNodes, 
                 Settings::OnOffSession, Settings::OnOffRounds);
-    /*
-    if(Settings::QueryHours)
-        Underlay::Inst()->generateWorkload(Settings::QueryHours,Settings::QueryPerNode*totalNodes,'Q');
-    if(Settings::UpdateHours)
-        Underlay::Inst()->generateWorkload(Settings::UpdateHours,Settings::UpdatePerNode*totalNodes,'U');
-     * */
-    cout <<"total queued jobs: " <<EventScheduler::Inst()->GetSize() <<" info: ";
+    cout <<"EventScheduler::Inst()->GetCurrentTime() =" <<EventScheduler::Inst()->GetCurrentTime()<<endl;
+    
     while ( EventScheduler::Inst()->GetCurrentTime() <= Settings::EndTime
-            && EventScheduler::Inst()->GetSize()>1){
+            && (EventScheduler::Inst()->GetSize()>1 || EventScheduler::Inst()->GetCurrentTime()<=1)){
 	Event * pevent = EventScheduler::Inst()->CurrentEvent();
 	//cout <<"queued jobs: " <<EventScheduler::Inst()->GetSize() <<" info: ";
 	pevent->PrintInfo();
@@ -260,9 +283,6 @@ int main(int argc, const char* argv[])
     }
     Stat::Inst()->PrintRetryStat();
     Stat::Inst()->PrintLatencyStat();
-    /*for (int i = 0; i < 10; i++) {
-        for(int j=0; j<10; j++)
-            cout<<i+j+1<<" ";
-    }*/
+    
     
 }

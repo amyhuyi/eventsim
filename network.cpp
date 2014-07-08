@@ -13,10 +13,55 @@
 #include "event_scheduler.h"
 #include "util.h"
 #include "genran/str.h"
-//#include "util.h"
-GUID::GUID (UINT32 id, UINT32 asIdx, FLOAT64 time){
+
+CITY::CITY(string city, string state, string country, FLOAT32 lat, FLOAT32 lon, FLOAT32 pop, UINT32 ixp_weight){
+    _city = city;
+    _state = state;
+    _country = country;
+    _latitude = lat;
+    _longitude = lon;
+    _population = pop;
+    _ixp_weight = ixp_weight;
+    _nodeIdx_v.clear();
+}
+
+CITY::~CITY(){
+    
+}
+
+string CITY::getCity(){
+    return _city;
+}
+
+string CITY::getState(){
+    return _state;
+}
+
+string CITY::getCountry(){
+    return _country;
+}
+
+FLOAT32 CITY::getLat(){
+    return _latitude;
+}
+
+FLOAT32 CITY::getLon(){
+    return _longitude;
+}
+
+FLOAT32 CITY::getPop(){
+    return _population;
+}
+UINT32 CITY::getIXPWeight(){
+    return _ixp_weight;
+}
+bool CITY::isGW(){
+    return (_ixp_weight>0);
+}
+
+GUID::GUID (UINT32 id, UINT32 nodeIdx, FLOAT64 time){
     _guid = id;
-    _address_asIdx = asIdx;
+    _address_nodeIdx = nodeIdx;
     _vphostIdx = Underlay::Inst()->getvpHostIdx(_guid,0,Underlay::Inst()->global_node_table.size()-1);
     _last_update_time = time;
 }
@@ -36,13 +81,17 @@ FLOAT64 GUID::getLastUpdateTime (){
     return _last_update_time;
 }
         
-void GUID::updateAddrASIdx(UINT32 newASIdx, FLOAT64 time){
-    _address_asIdx = newASIdx;
+void GUID::updateAddrNodeIdx(UINT32 newNodeIdx, FLOAT64 time){
+    _address_nodeIdx = newNodeIdx;
     _last_update_time = time;
 }
         
+UINT32 GUID::getAddrNodeIdx(){
+    return _address_nodeIdx;
+}
+
 UINT32 GUID::getAddrASIdx(){
-    return _address_asIdx;
+    return Underlay::Inst()->global_node_table[_address_nodeIdx].getASIdx();
 }
 
 Node::Node(UINT32 hashID, UINT32 asIdx, FLOAT64 time){
@@ -81,15 +130,54 @@ UINT32 Node::getNodeIdx(){
     return _nodeIdx;
 }
 
+UINT32 Node::getCityIdx() {
+    return _cityIdx;
+}
+
+void Node::setCityIdx(UINT32 index){
+    _cityIdx = index;
+}
+
 void Node::setNodeIdx(UINT32 index){
     _nodeIdx = index;
 }
+
+
+bool Node::insertGUID(UINT32 guidIdx, FLOAT64 time){
+    if(isInService()){
+        GNRSOperationMessage * anInsertionMsg = new GNRSOperationMessage (MT_GUID_INSERTION, _nodeIdx, guidIdx, time);
+        EventScheduler::Inst()->AddEvent(anInsertionMsg);
+        return true;
+    }
+    return false;
+}
+
+bool Node::updateGUID(UINT32 guidIdx, FLOAT64 time){
+    if(isInService()){
+        GNRSOperationMessage * anUpdateMsg = new GNRSOperationMessage (MT_GUID_UPDATE, _nodeIdx, guidIdx, time);
+        EventScheduler::Inst()->AddEvent(anUpdateMsg);
+        return true;
+    } 
+    return false;
+}
+    
+bool Node::queryGUID(UINT32 guidIdx, FLOAT64 time){
+    if(isInService()){
+        GNRSOperationMessage * aQueryMsg = new GNRSOperationMessage (MT_GUID_QEURY, _nodeIdx, guidIdx, time);
+        EventScheduler::Inst()->AddEvent(aQueryMsg);
+        return true;
+    }
+    return false;
+}
+
 AS::AS(UINT32 asindex, UINT32 tier, UINT32 capacity, UINT32 asNum, string asCountry){
     _asIdx = asindex;
     _tier = tier;
     _capacity = capacity;
     _asNum = asNum;
     _asCntry = asCountry;
+    _myCities.clear();
+    _myNodes.clear();
 }
 
  AS::~AS(){}
@@ -389,25 +477,25 @@ void AS::calCorrectHost(set<UINT32> localHostset, set<UINT32> globalHostset, cha
     }
 }
 
-GNRSOperationMessage::GNRSOperationMessage(MsgType type, UINT32 asIdx, UINT32 guidIdx, FLOAT64 time) {
+GNRSOperationMessage::GNRSOperationMessage(MsgType type, UINT32 nodeIdx, UINT32 guidIdx, FLOAT64 time) {
     _type = type;
-    _asIdx = asIdx;
-    _src = asIdx;
+    _nodeIdx = nodeIdx;
+    _src = Underlay::Inst()->global_node_table[_nodeIdx].getASIdx();
     _guidIdx = guidIdx;
     _time_done = _time_created+time;
 }
 bool GNRSOperationMessage::Callback(){
     if (_type == MT_GUID_UPDATE || _type == MT_GUID_INSERTION) {
-        Underlay::Inst()->global_guid_list[_guidIdx].updateAddrASIdx(_asIdx,GetTimeDone());
+        Underlay::Inst()->global_guid_list[_guidIdx].updateAddrNodeIdx(_nodeIdx,GetTimeDone());
     }
     set<UINT32> localHostset; // local AS determined host set
     set<UINT32> globalHostset; //global determined host set
     Underlay::Inst()->determineHost(_guidIdx, globalHostset,-1);
-    Underlay::Inst()->determineHost(_guidIdx, localHostset,_asIdx);
+    Underlay::Inst()->determineHost(_guidIdx, localHostset,_src);
     if (_type == MT_GUID_INSERTION || _type == MT_GUID_UPDATE) {
-        Underlay::Inst()->as_v[_asIdx].calCorrectHost(localHostset,globalHostset,'I');
+        Underlay::Inst()->as_v[_src].calCorrectHost(localHostset,globalHostset,'I');
     } else {
-        Underlay::Inst()->as_v[_asIdx].calCorrectHost(localHostset,globalHostset,'Q');
+        Underlay::Inst()->as_v[_src].calCorrectHost(localHostset,globalHostset,'Q');
     }
     return true;
 }
@@ -418,32 +506,7 @@ bool AS::isGNRSMember(){
             return true;
     return false;
 }
-bool AS::insertGUID(UINT32 guidIdx, FLOAT64 time){
-    if(isGNRSMember()){
-        GNRSOperationMessage * anInsertionMsg = new GNRSOperationMessage (MT_GUID_INSERTION, _asIdx, guidIdx, time);
-        EventScheduler::Inst()->AddEvent(anInsertionMsg);
-        return true;
-    }
-    return false;
-}
 
-bool AS::updateGUID(UINT32 guidIdx, FLOAT64 time){
-    if(isGNRSMember()){
-        GNRSOperationMessage * anUpdateMsg = new GNRSOperationMessage (MT_GUID_UPDATE, _asIdx, guidIdx, time);
-        EventScheduler::Inst()->AddEvent(anUpdateMsg);
-        return true;
-    } 
-    return false;
-}
-    
-bool AS::queryGUID(UINT32 guidIdx, FLOAT64 time){
-    if(isGNRSMember()){
-        GNRSOperationMessage * aQueryMsg = new GNRSOperationMessage (MT_GUID_QEURY, _asIdx, guidIdx, time);
-        EventScheduler::Inst()->AddEvent(aQueryMsg);
-        return true;
-    }
-    return false;
-}
 
 Underlay* Underlay::_underlay_ptr = NULL;
 
@@ -452,9 +515,9 @@ Underlay* Underlay::Inst() {
 	return _underlay_ptr;
 }
 
-void Underlay::CreateInst(const char* routeFile, const char* asFile) {
+void Underlay::CreateInst(const char* cityFile, const char* routeFile, const char* asFile) {
 	assert( _underlay_ptr == NULL );
-	_underlay_ptr = new Underlay(routeFile, asFile);
+	_underlay_ptr = new Underlay(cityFile, routeFile, asFile);
 }
 
 UINT32 Underlay::GetNumOfAS() {
@@ -464,7 +527,8 @@ UINT32 Underlay::GetNumOfNode() {
     return _num_of_node;
 }
 
-Underlay::Underlay(const char* routeFile, const char* asFile) {
+Underlay::Underlay(const char* cityFile, const char* routeFile, const char* asFile) {
+    ReadInCityInfo(cityFile);
     ReadInRoutingTable(routeFile);
     ReadInASInfo(asFile);
     InitializeNetwork();
@@ -523,20 +587,73 @@ void Underlay::ReadInASInfo(const char* asFile) {
     cout<<"Total no. of AS from as file "<<noAS<<" Total no. of full AS"<<nofullAS<<endl;
     assert(noAS == _num_of_as);
     cout << "reading AS tier and capacity " <<endl; 
-		
     UINT32 tier;
     UINT32 capacity;
     string country;
     UINT32 currSubASno;
+    string temp_line;
+    vector<string> _vstrTemp;
     as_v.clear();
-    for (UINT32 i=0; i < nofullAS; i++) { 
+    for (UINT32 i=0; i < nofullAS; i++) {
         asFileHdlr >> tier;
         asFileHdlr >> currSubASno;
         for (int j = 0; j < currSubASno; j++) {
-            asFileHdlr>>capacity;
-            asFileHdlr>>country;
+            temp_line.clear();
+            getline(asFileHdlr,temp_line);
+            if (temp_line.length()==0) {
+                getline(asFileHdlr,temp_line);
+            }
+            str2StrArr(temp_line, ';', _vstrTemp);
+            capacity = atoi(_vstrTemp[0].c_str());
+            country = _vstrTemp[1];
+            assert(_vstrTemp.size() == (capacity+2));
             AS thisAS(as_v.size(), tier, capacity, i, country);
+            for (int k = 0; k < capacity; k++) {
+                thisAS._myCities.insert(getCityIdx(_vstrTemp[2+k]));
+            }
+            assert(thisAS._myCities.size() == thisAS.getCapacity());
             as_v.push_back(thisAS);
+        }
+    }
+}
+UINT32 Underlay::getCityIdx(string cityName){
+    string temp_line;
+    vector<string> _vstrTemp;
+    temp_line = cityName;
+    str2StrArr(temp_line, ',', _vstrTemp);
+    assert(_vstrTemp.size()==3);
+    assert(city_list.size());
+    for (int i = 0; i < city_list.size(); i++) {
+        if (city_list[i].getCity() == _vstrTemp[0] && city_list[i].getState() == _vstrTemp[1]
+                && city_list[i].getCountry() == _vstrTemp[2]) {
+            return i;
+        }
+    }
+    cerr<<"Can't locate cityNAme "<<cityName<<endl;
+    return 0;
+}
+
+void Underlay::ReadInCityInfo(const char* cityFile){
+    ifstream cityFileHdlr(cityFile);
+    assert(cityFileHdlr.is_open());
+    string temp_line;
+    vector<string> _vstrTemp;
+    while (cityFileHdlr.good()){
+        temp_line.clear();
+	getline(cityFileHdlr,temp_line);
+        if (cityFileHdlr.eof()) {
+            break;
+        }
+	str2StrArr(temp_line, ',', _vstrTemp);
+        if (_vstrTemp.size()==8 && _vstrTemp[0] != "#city") {
+            CITY thisCity(_vstrTemp[0], _vstrTemp[1], _vstrTemp[2], atof(_vstrTemp[4].c_str()), atof(_vstrTemp[5].c_str()),
+                  atof(_vstrTemp[3].c_str()), atoi(_vstrTemp[7].c_str()));
+            city_list.push_back(thisCity);
+        }
+        else {
+            if (_vstrTemp[0] != "#city") {
+                cerr<<"wrong city name "<< temp_line <<endl;
+            }
         }
     }
 }
@@ -564,32 +681,46 @@ void Underlay::InitializeNetwork(){
                 currHashID = Util::Inst()->GenInt(GNRS_HASH_RANGE);
             }
             Node currNode(currHashID, i, EventScheduler::Inst()->GetCurrentTime());
+            currNode.setCityIdx(*(as_v[i]._myCities.begin()));
+            as_v[i]._myCities.erase(as_v[i]._myCities.begin());
             global_node_table.push_back(currNode);
             assignedHashID.insert(currHashID);
         }
 
     }
-    
     sort(global_node_table.begin(), global_node_table.end(),NodeSortPredicate);
     for (int i = 0; i < global_node_table.size(); i++) {
         global_node_table[i].setNodeIdx(i);
         as_v[global_node_table[i].getASIdx()]._myNodes.insert(i);
+        city_list[global_node_table[i].getCityIdx()]._nodeIdx_v.push_back(i);
+    }
+    gw_cities.clear();
+    for (int i = 0; i < city_list.size(); i++) {
+        if (city_list[i].isGW() && city_list[i]._nodeIdx_v.size()) {
+            gw_cities.push_back(i);
+        }
     }
 }
 /* insert activeGUIDno. of guid
+ * select PoPs in gw cities for GUID insertion
  */
 void Underlay::InitializeWorkload(){
-    UINT32 currNodeIdx, currASIdx;
+    cout<<"Settings::TotalActiveGUID"<<Settings::TotalActiveGUID<<endl;
+    UINT32 currNodeIdx;
     set<UINT32> assignedGUID;
     UINT32 currGUID;
+    UINT32 currCityIdx;
+    assert(gw_cities.size());
     for(UINT32 i=0; i<Settings::TotalActiveGUID; i++){
-        currNodeIdx= Util::Inst()->GenInt(_num_of_node);
-        currASIdx = global_node_table[currNodeIdx].getASIdx();
+        //currNodeIdx= Util::Inst()->GenInt(_num_of_node);        
+        currCityIdx = Util::Inst()->GenInt(gw_cities.size());
+        assert(city_list[gw_cities[currCityIdx]]._nodeIdx_v.size());
+        currNodeIdx = city_list[gw_cities[currCityIdx]]._nodeIdx_v[0];
         currGUID = Util::Inst()->GenInt(GNRS_HASH_RANGE);
         while (assignedGUID.find(currGUID) != assignedGUID.end()) {
             currGUID = Util::Inst()->GenInt(GNRS_HASH_RANGE);
         }
-        GUID aGuid(currGUID,currASIdx,EventScheduler::Inst()->GetCurrentTime());
+        GUID aGuid(currGUID,currNodeIdx,EventScheduler::Inst()->GetCurrentTime());
         global_guid_list.push_back(aGuid);
         assignedGUID.insert(currGUID);
     }
@@ -644,43 +775,88 @@ UINT32 Underlay::migrationOverhead4Leave(UINT32 nodeIdx){
     return singleShare;
 }
 
+void Underlay::getQueryNodes(UINT32 guidIdx, vector<UINT32>& _queryNodes, FLOAT32 exponent){
+    _queryNodes.clear();
+    FLOAT32 totalWeight=0;
+    FLOAT32 lat1, lon1, lat2, lon2;
+    FLOAT32 currDistance;
+    lat1 = city_list[global_node_table[global_guid_list[guidIdx].getAddrNodeIdx()].getCityIdx()].getLat();
+    lon1 = city_list[global_node_table[global_guid_list[guidIdx].getAddrNodeIdx()].getCityIdx()].getLon();
+    for (int i = 0; i < gw_cities.size(); i++) {
+        lat2 = city_list[gw_cities[i]].getLat();
+        lon2 = city_list[gw_cities[i]].getLon();
+        currDistance = distance(lat1, lon1, lat2, lon2, 'M');
+        if (currDistance ==0) {
+            currDistance = 0.1;
+        }
+        totalWeight += pow(currDistance, exponent);
+    }
+    FLOAT32 guidPerWeight = (FLOAT32)(200)/totalWeight;
+    UINT32 quota;
+    for (int i = 0; i < gw_cities.size(); i++) {
+        lat2 = city_list[gw_cities[i]].getLat();
+        lon2 = city_list[gw_cities[i]].getLon();
+        currDistance = distance(lat1, lon1, lat2, lon2, 'M');
+        if (currDistance ==0) {
+            currDistance = 0.1;
+        }
+        if (pow(currDistance, exponent) * guidPerWeight > 0.5) {
+            quota = (UINT32)pow(currDistance, exponent) * guidPerWeight +1;
+            for (int j = 0; j < quota; j++) {
+                _queryNodes.push_back(city_list[gw_cities[i]]._nodeIdx_v[0]);
+            }
+        } 
+    }
+    assert(_queryNodes.size());
+    //debug
+    cout<< city_list[global_node_table[global_guid_list[guidIdx].getAddrNodeIdx()].getCityIdx()].getCity()<<","
+            <<city_list[global_node_table[global_guid_list[guidIdx].getAddrNodeIdx()].getCityIdx()].getCountry()
+            <<" GUID birth city"<<endl;
+    for (int i = 0; i < _queryNodes.size(); i++) {
+        cout<<city_list[global_node_table[_queryNodes[i]].getCityIdx()].getCity()<<","
+                <<city_list[global_node_table[_queryNodes[i]].getCityIdx()].getCountry()<<" a query city"<<endl;
+    }
+
+}
 /*
  generate update or query workload, insert is done at network initialization
  */
-UINT32 Underlay::generateWorkload(UINT32 workloadLength, FLOAT64 mean_arrival, char opt){
+UINT32 Underlay::generateWorkload(FLOAT64 mean_arrival, char opt){
     assert(opt == 'U' || opt == 'Q');
     UINT32 currGUIDIdx, currNodeIdx, currASIdx;
     UINT32 currRound =0, generatedCnt =0;
-    
-    UINT32 currBeginTime = 0;
     Util::Inst() ->ResetPoisson(mean_arrival);
-    while (currBeginTime<workloadLength) {
-        currRound = (UINT32)Util::Inst()->GenPoisson();
-        int i=0;
-        while(i<currRound){
-            currGUIDIdx = Util::Inst()->GenInt(global_guid_list.size());
-            currNodeIdx = Util::Inst()->GenInt(_num_of_node);
-            currASIdx = global_node_table[currNodeIdx].getASIdx();
-            if (opt == 'Q'&& as_v[currASIdx].queryGUID(currGUIDIdx, currBeginTime)) {
-                //cout<<"AS "<< currASIdx<<" GUID"<<currGUIDIdx<<endl;
-                i++;
-            } else if (opt == 'U' && as_v[currASIdx].updateGUID(currGUIDIdx, currBeginTime)){
-                i++;
+    vector<UINT32> queryNodes;
+    //currRound = (UINT32)Util::Inst()->GenPoisson();
+    currRound = (UINT32)(mean_arrival/200);//assume each guid has 200 queries, total query no. in this round is mean_arrival
+    int i=0;
+    while(i<currRound){
+        currGUIDIdx = Util::Inst()->GenInt(global_guid_list.size());
+        //to do exponent parameter setting
+        getQueryNodes(currGUIDIdx, queryNodes, Settings::Locality_Exponent);
+        for (int j = 0; j < queryNodes.size(); j++) {
+            currNodeIdx = queryNodes[j];
+            if (opt == 'Q'&& global_node_table[currNodeIdx].queryGUID(currGUIDIdx, 0)) {
+                generatedCnt++;
+            } else if (opt == 'U' && global_node_table[currNodeIdx].updateGUID(currGUIDIdx, 0)){
+                generatedCnt++;
             }
         }
-        UINT32 idxDHTCnt = Underlay::Inst()->getIdxRetryCnt(EventScheduler::Inst()->GetCurrentTime(), true);
-        UINT32 idxRetryCnt = Underlay::Inst()->getIdxRetryCnt(EventScheduler::Inst()->GetCurrentTime(), false);
-        if(opt == 'I' || opt == 'U' ){
-            Stat::DHT_RetryCnt[idxDHTCnt]._issuedUpdate = currRound;
-            Stat::Retry_Cnt[idxRetryCnt]._issuedUpdate = currRound;
-        }
-        else if(opt == 'Q'){
-            Stat::DHT_RetryCnt[idxDHTCnt]._issuedQuery = currRound;
-            Stat::Retry_Cnt[idxRetryCnt]._issuedQuery = currRound;
-        } 
-        currBeginTime++;
-        generatedCnt += currRound;
+        i++;
     }
+    //statistic keeping
+    UINT32 idxDHTCnt = Underlay::Inst()->getIdxRetryCnt(EventScheduler::Inst()->GetCurrentTime(), true);
+    UINT32 idxRetryCnt = Underlay::Inst()->getIdxRetryCnt(EventScheduler::Inst()->GetCurrentTime(), false);
+    if(opt == 'I' || opt == 'U' ){
+        Stat::DHT_RetryCnt[idxDHTCnt]._issuedUpdate = generatedCnt;
+        Stat::Retry_Cnt[idxRetryCnt]._issuedUpdate = generatedCnt;
+    }
+    else if(opt == 'Q'){
+        Stat::DHT_RetryCnt[idxDHTCnt]._issuedQuery = generatedCnt;
+        Stat::Retry_Cnt[idxRetryCnt]._issuedQuery = generatedCnt;
+    }
+    //debug
+    cout<<"suppose to generate "<<mean_arrival<<" "<<opt<<" actual generated"<<generatedCnt<<endl;
     return generatedCnt;
 }
 
@@ -733,10 +909,13 @@ bool Underlay::isAvailable(UINT32 nodeIdx, int asIdx){
             return false;
     }
 }
-//find the local replica host -- numerically nearest nodes online and belong to insertion AS
+//find the local replica host -- numerically nearest nodes online and deployed in the same city
 void Underlay::determineLocalHost(UINT32 guidIdx, set<UINT32>& _hostNodeIdx, int asIdx){
-    set<UINT32> localNodes = as_v[global_guid_list[guidIdx].getAddrASIdx()]._myNodes;
-    set<UINT32>::iterator it;
+    //set<UINT32> localNodes = as_v[global_guid_list[guidIdx].getAddrASIdx()]._myNodes;
+    //set<UINT32>::iterator it;
+    UINT32 currNodeIdx = global_guid_list[guidIdx].getAddrNodeIdx();
+    vector<UINT32> localNodes = city_list[global_node_table[currNodeIdx].getCityIdx()]._nodeIdx_v;
+    vector<UINT32>:: iterator it;
     UINT32 minDistance;
     bool calculated=false;
     UINT32 localhostIdx;
@@ -755,18 +934,13 @@ void Underlay::determineLocalHost(UINT32 guidIdx, set<UINT32>& _hostNodeIdx, int
     }
     _hostNodeIdx.insert(localhostIdx);
     //debug
-    cout<<"guid= "<<global_guid_list[guidIdx].getGUID()<<"from asIdx "<<asIdx<<" 's view local ASIdx = " << global_guid_list[guidIdx].getAddrASIdx()
-            <<" selected local host "<<global_node_table[localhostIdx].getHashID()<<" all local nodes: "<<endl;
-    for(it= localNodes.begin(); it!=localNodes.end(); it++){
-        cout<<global_node_table[(*it)].getHashID()<<" " 
-            << numericDistance(global_node_table[(*it)].getHashID(),global_guid_list[guidIdx].getGUID())<<",";
-    }
-    cout<<endl;
-    cout<<"minDistance"<<minDistance<<endl;
+    cout<<"guid= "<<global_guid_list[guidIdx].getGUID()<<"from city "<<city_list[global_node_table[currNodeIdx].getCityIdx()].getCity()
+            <<","<<city_list[global_node_table[currNodeIdx].getCityIdx()].getCountry()<<endl;
+    cout<<"localhost "<<localhostIdx<<"from city"<<city_list[global_node_table[localhostIdx].getCityIdx()].getCity()
+            <<city_list[global_node_table[localhostIdx].getCityIdx()].getCountry()<<endl;
 }
-void Underlay::determineHostNoRegional(UINT32 guidIdx, set<UINT32>& _hostNodeIdx, int asIdx){
+void Underlay::determineGlobalHost(UINT32 guidIdx, set<UINT32>& _hostNodeIdx, int asIdx){
     UINT32 currGUID = global_guid_list[guidIdx].getGUID();
-    UINT32 currASIdx = global_guid_list[guidIdx].getAddrASIdx();
     UINT32 assingedGlobal=0;
     UINT32 vPhostIdx = global_guid_list[guidIdx].getvphostIdx();
     assert(vPhostIdx>=0 && vPhostIdx<_num_of_node);
@@ -791,16 +965,6 @@ void Underlay::determineHostNoRegional(UINT32 guidIdx, set<UINT32>& _hostNodeIdx
             scanned++;
             continue;
         }
-        if(Settings::Local_K && global_node_table[rightPtr].getASIdx() == currASIdx){
-            InRangePlus(rightPtr, _num_of_node);
-            scanned++;
-            continue;
-        }
-        if(Settings::Local_K && global_node_table[leftPtr].getASIdx() == currASIdx){
-            InRangeMinus(leftPtr, _num_of_node);
-            scanned++;
-            continue;
-        }
         if(numericDistance(global_node_table[leftPtr].getHashID(),currGUID) < 
                 numericDistance(global_node_table[rightPtr].getHashID(),currGUID)){
             currCandidateIdx = leftPtr;
@@ -816,49 +980,40 @@ void Underlay::determineHostNoRegional(UINT32 guidIdx, set<UINT32>& _hostNodeIdx
         assingedGlobal++;
     }
     //debug 
-    cout<<"No-regional"<<asIdx<<"'s view determined host size for "<<currGUID<<" is "<<_hostNodeIdx.size()<<":";
+    cout<<"Global Host"<<asIdx<<"'s view determined host size for "<<currGUID<<" is "<<_hostNodeIdx.size()<<":";
     set<UINT32>::iterator it;
     for (it = _hostNodeIdx.begin(); it != _hostNodeIdx.end(); it++) {
         cout<<global_node_table[(*it)].getHashID()<<" "<<as_v[global_node_table[(*it)].getASIdx()].getASCntry()<<" ";
     }
     cout<<endl;
 }
-void Underlay::determineNonLocalHost(UINT32 guidIdx, set<UINT32>& _hostNodeIdx, int asIdx){
+
+
+void Underlay::determineRegionalHost(UINT32 guidIdx, set<UINT32>& _hostNodeIdx, int asIdx){
     string currCntry = as_v[global_guid_list[guidIdx].getAddrASIdx()].getASCntry();
-    UINT32 currASIdx = global_guid_list[guidIdx].getAddrASIdx();
     UINT32 currGUID = global_guid_list[guidIdx].getGUID();
     UINT32 assingedRegional =0;
-    UINT32 assingedGlobal=0;
     UINT32 vPhostIdx = global_guid_list[guidIdx].getvphostIdx();
     assert(vPhostIdx>=0 && vPhostIdx<_num_of_node);
     UINT32 leftPtr = vPhostIdx;
     InRangeMinus(leftPtr, _num_of_node); 
     UINT32 rightPtr = vPhostIdx;
     InRangePlus(rightPtr, _num_of_node);
-    if(isAvailable(vPhostIdx, asIdx) && global_node_table[vPhostIdx].getASIdx()!= currASIdx){
-        if(as_v[global_node_table[vPhostIdx].getASIdx()].getASCntry() == currCntry){
-            if(assingedRegional<Settings::Regional_K){
-                _hostNodeIdx.insert(vPhostIdx);
-                assingedRegional++;
-            }
-        }
-        else{
-            if(assingedGlobal<Settings::GNRS_K){
-                _hostNodeIdx.insert(vPhostIdx);
-                assingedGlobal++;
-            }
-        }
+    if(isAvailable(vPhostIdx, asIdx) && as_v[global_node_table[vPhostIdx].getASIdx()].getASCntry() == currCntry
+            && assingedRegional<Settings::Regional_K && _hostNodeIdx.insert(vPhostIdx).second){
+        assingedRegional++;
     }
     UINT32 currCandidateIdx;
     UINT32 scanned=1;
-    while((assingedRegional<Settings::Regional_K || assingedGlobal<Settings::GNRS_K) 
-            && scanned<=_num_of_node){
-        if(!isAvailable(rightPtr, asIdx) || global_node_table[rightPtr].getASIdx() == currASIdx){
+    while(assingedRegional<Settings::Regional_K && scanned<=_num_of_node){
+        if(!isAvailable(rightPtr, asIdx) ||
+                as_v[global_node_table[rightPtr].getASIdx()].getASCntry() != currCntry){
             InRangePlus(rightPtr, _num_of_node);
             scanned++;
             continue;
         }
-        if(!isAvailable(leftPtr, asIdx)|| global_node_table[leftPtr].getASIdx() == currASIdx){
+        if(!isAvailable(leftPtr, asIdx) ||
+                as_v[global_node_table[leftPtr].getASIdx()].getASCntry() != currCntry){
             InRangeMinus(leftPtr, _num_of_node);
             scanned++;
             continue;
@@ -874,37 +1029,36 @@ void Underlay::determineNonLocalHost(UINT32 guidIdx, set<UINT32>& _hostNodeIdx, 
             InRangePlus(rightPtr,_num_of_node);
             scanned++;
         }
-        if(as_v[global_node_table[currCandidateIdx].getASIdx()].getASCntry() == currCntry) {
-            if(assingedRegional < Settings::Regional_K){
-                _hostNodeIdx.insert(currCandidateIdx);
-                assingedRegional++;
-            }  
-        }
-        else if(assingedGlobal < Settings::GNRS_K){
-            _hostNodeIdx.insert(currCandidateIdx);
-            assingedGlobal++;
+        if(_hostNodeIdx.insert(currCandidateIdx).second) {
+            assingedRegional++; 
         }
     }
     //debug 
-    cout<<"from AS"<<asIdx<<"'s view determined host size for "<<currGUID<<" is "<<_hostNodeIdx.size()<<":";
+    cout<<"from AS"<<asIdx<<"'s view determined global + regional host size for "<<currGUID<<" is "<<_hostNodeIdx.size()<<":";
     set<UINT32>::iterator it;
     for (it = _hostNodeIdx.begin(); it != _hostNodeIdx.end(); it++) {
         cout<<global_node_table[(*it)].getHashID()<<" "<<as_v[global_node_table[(*it)].getASIdx()].getASCntry()<<" ";
     }
     cout<<endl;
-    cout<<currASIdx<<","<<currCntry<<endl;
+    cout<<currCntry<<endl;
 }
 
+/*
+ first determine GNRS_K global replica
+ then determine Regional_K regional replica
+ finally determine Local_K local replica
+ the final result is the union of the three set, an overlapping replica accounts for all replicas it qualifies
+ */
 void Underlay::determineHost(UINT32 guidIdx, set<UINT32> & _hostNodeIdx, int asIdx){
     _hostNodeIdx.clear();
-    if(Settings::Local_K){
-        determineLocalHost(guidIdx,_hostNodeIdx, asIdx);
+    if(Settings::GNRS_K){
+        determineGlobalHost(guidIdx,_hostNodeIdx,asIdx);
     }
     if(Settings::Regional_K){
-        determineNonLocalHost(guidIdx,_hostNodeIdx, asIdx);
+        determineRegionalHost(guidIdx,_hostNodeIdx, asIdx);
     }
-    else{
-        determineHostNoRegional(guidIdx,_hostNodeIdx,asIdx);
+    if(Settings::Local_K){
+        determineLocalHost(guidIdx,_hostNodeIdx, asIdx);
     }
 }
 

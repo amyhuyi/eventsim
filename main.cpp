@@ -38,6 +38,7 @@ FLOAT64 Settings::QueryPerNode = 10000;
 FLOAT64 Settings::UpdatePerNode = 1000;
 string Settings::outFileName;
 FLOAT64 Settings::ChurnPerNode=0.01;
+FLOAT32 Settings::Locality_Exponent = -0.4;
 /*!
  *  @brief Computes floor(log2(n))
  *  Works by finding position of MSB set.
@@ -168,44 +169,55 @@ void ParseArg(const char * argv)
 	ss <<arg.substr(13);
 	ss >>Settings::ChurnPerNode;
     }
+    else if (arg.find("locality_exponent=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(18);
+	ss >>Settings::Locality_Exponent;
+    }
 }
 
 int main(int argc, const char* argv[])
 {
     EventScheduler::Inst()->AddEvent(new DummyEvent());
     cout <<"Initializing the network ..." <<endl;
-    //argv[1]: routeFileName, argv[2]:asInfoFileName
-    Underlay::CreateInst(argv[1], argv[2]);
+    //argv[1]: cityFileName, argv[2]:routeFileName, argv[3]:asInfoFileName
+    Underlay::CreateInst(argv[1], argv[2], argv[3]);
+    /*
     for (int i = 0; i < Underlay::Inst()->as_v.size(); i++) {
         cout<<"as Num = "<<Underlay::Inst()->as_v[i].getASNum()<<" tier = "<<Underlay::Inst()->as_v[i].getTier()
                 << "capacity = "<< Underlay::Inst()->as_v[i].getCapacity()<<" index= "<<Underlay::Inst()->as_v[i].getASIndex()
                 <<endl;
         //for (int j = 0; j < Underlay::Inst()->as_v.size(); j++) {
-        //    cout<<"latency "<<i<<" to "<<j<<" = "<<Underlay::Inst()->getLatency(i,j)<<endl;
+            //cout<<"latency "<<i<<" to "<<j<<" = "<<Underlay::Inst()->getLatency(i,j)<<endl;
         //}
     }
-    
+    */
+    /*
     for (int i = 0; i < Underlay::Inst()->global_node_table.size(); i++) {
         cout<<"for node "<<Underlay::Inst()->global_node_table[i].getHashID() <<" "
                 <<Underlay::Inst()->global_node_table[i].getNodeIdx() <<" "
                 <<Underlay::Inst()->global_node_table[i].getASIdx()<<" "
                 <<Underlay::Inst()->as_v[Underlay::Inst()->global_node_table[i].getASIdx()].getASCntry()<<endl;
     }
-    
-    if(argc>3){
-        for (int i = 3; i < argc; i++) {
+    */
+    if(argc>4){
+        for (int i = 4; i < argc; i++) {
             ParseArg(argv[i]);
         }
+    }else{
+        cout<<"USAGE:: argv[1]: cityFileName, argv[2]:routeFileName, argv[3]:asInfoFileName"<<endl;
+        abort();
     }
     Underlay::Inst()->InitializeWorkload();
     
-    
+    /*
     for (int i = 0; i < Underlay::Inst()->global_guid_list.size(); i++) {
         cout<<"for guid "<<Underlay::Inst()->global_guid_list[i].getGUID() <<" "
                 <<Underlay::Inst()->global_guid_list[i].getvphostIdx()<<" "<<
                 Underlay::Inst()->global_node_table[Underlay::Inst()->global_guid_list[i].getvphostIdx()].getHashID()<<endl;
     }
-    
+    */
     cout<<"total # nodes "<<Underlay::Inst()->global_node_table.size()<<endl;
     //Settings::DHTHop = log10((FLOAT64)Underlay::Inst()->global_node_table.size());
     /*
@@ -231,7 +243,8 @@ int main(int argc, const char* argv[])
     cout<<"Settings::UpdateHours="<<Settings::UpdateHours<<endl;//# of hours update generation
     cout<<"Settings::QueryPerNode="<<Settings::QueryPerNode<<endl;
     cout<<"Settings::UpdatePerNode="<<Settings::UpdatePerNode<<endl;
-     cout<<"Settings::ChurnPerNode="<<Settings::ChurnPerNode<<endl;
+    cout<<"Settings::ChurnPerNode="<<Settings::ChurnPerNode<<endl;
+    cout<<"Settings::Locality_Exponent="<<Settings::Locality_Exponent<<endl; 
     
     for (UINT32 i = 0; i < Underlay::Inst()->GetNumOfNode(); i++) {
         Stat::Migration_per_node.push_back(0);
@@ -280,8 +293,7 @@ int main(int argc, const char* argv[])
     for (int i = 0; i < Stat::DHT_RetryCnt.size(); i++) {
        cout<<Stat::DHT_RetryCnt[i]._time<<" "<<Stat::DHT_RetryCnt[i]._retryUpdate<<" "<<Stat::DHT_RetryCnt[i]._retryQuery<<endl;
     }
-    Stat::Inst()->PrintRetryStat();
-    Stat::Inst()->PrintLatencyStat();
-    
-    
+    //Stat::Inst()->PrintRetryStat();
+    //Stat::Inst()->PrintLatencyStat();
+    Stat::Inst()->PrintQueryLatencyCDF();
 }

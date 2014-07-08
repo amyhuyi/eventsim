@@ -28,8 +28,14 @@
         <runcommandpicklist>
           <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" ../genRouteAndASinput/IXPRFfull1_routeinclude_intra ../genRouteAndASinput/IXPRFfull1_ASinfo queryhours=1 updatehours=1 churnpernode=1 querypernode=1 updatepernode=1 neighborsize=2 outfilename=test local_k=1 regional_k=1 gnrs_k=5 >out.txt</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"
+../../DMAP_local2/as_constructor/lower_case_alexa.txt ./inputFile4EventSim/2220IXP_Prov4_IXP2_m_routeinclude_intra ./inputFile4EventSim/2220IXP_Prov4_IXP2_m_ASInfo queryhours=0 updatehours=0 churnpernode=0 querypernode=1 updatepernode=1 neighborsize=2 outfilename=test local_k=1 regional_k=1 gnrs_k=5 >out.txt</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"
+../eventsim/dist/Debug/GNU-MacOSX/eventsim ../../DMAP_local2/as_constructor/lower_case_alexa.txt ./inputFile4EventSim/2220IXP_Prov4_IXP2_m_routeinclude_intra ./inputFile4EventSim/2220IXP_Prov4_IXP2_m_ASInfo queryhours=0 updatehours=0 churnpernode=0.0001 querypernode=0.0001 updatepernode=0.0001 neighborsize=2 outfilename=test local_k=1 regional_k=1 gnrs_k=5 >out.txt</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" ../eventsim/dist/Debug/GNU-MacOSX/eventsim ../../DMAP_local2/as_constructor/lower_case_alexa.txt ./inputFile4EventSim/2220IXP_Prov4_IXP2_m_routeinclude_intra ./inputFile4EventSim/2220IXP_Prov4_IXP2_m_ASInfo queryhours=0 updatehours=0 churnpernode=0.0001 querypernode=0.0001 updatepernode=0.0001 neighborsize=2 outfilename=test local_k=1 regional_k=1 gnrs_k=5 >out.txt</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" ../../DMAP_local2/as_constructor/lower_case_alexa.txt ./inputFile4EventSim/2220IXP_Prov4_IXP2_m_routeinclude_intra ./inputFile4EventSim/2220IXP_Prov4_IXP2_m_ASInfo queryhours=0 updatehours=0 churnpernode=0.0001 querypernode=0.0001 updatepernode=0.0001 neighborsize=2 outfilename=test local_k=1 regional_k=1 gnrs_k=5 >out.txt</runcommandpicklistitem>
         </runcommandpicklist>
-        <runcommand>"${OUTPUT_PATH}" ../genRouteAndASinput/IXPRFfull1_routeinclude_intra ../genRouteAndASinput/IXPRFfull1_ASinfo queryhours=1 updatehours=1 churnpernode=1 querypernode=1 updatepernode=1 neighborsize=2 outfilename=test local_k=1 regional_k=1 gnrs_k=5 >out.txt</runcommand>
+        <runcommand>"${OUTPUT_PATH}" ../../DMAP_local2/as_constructor/lower_case_alexa.txt ./inputFile4EventSim/2220IXP_Prov4_IXP2_m_routeinclude_intra ./inputFile4EventSim/2220IXP_Prov4_IXP2_m_ASInfo queryhours=0 updatehours=0 churnpernode=0.0001 querypernode=0.0001 updatepernode=0.0001 neighborsize=2 outfilename=test local_k=1 regional_k=1 gnrs_k=5 >out.txt</runcommand>
         <rundir>/Users/yihu/Documents/GGNRS/data/.</rundir>
         <buildfirst>true</buildfirst>
         <terminal-type>0</terminal-type>

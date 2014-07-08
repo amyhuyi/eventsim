@@ -14,6 +14,55 @@
 #include "util.h"
 #include "overnet.h"
 
+bool str2StrArr(const string& s, char delim, vector<string>& storeResult){
+	storeResult.clear();
+	stringstream _ss(s);
+	string _element;
+	while(getline(_ss,_element,delim)){
+        storeResult.push_back(_element);
+	}
+	if (storeResult.size() == 0 )
+	{
+		return false;
+	}
+	return true;
+}
+
+/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+/*::  This function converts decimal degrees to radians             :*/
+/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+double deg2rad(double deg) {
+    return (deg * pi / 180);
+}
+
+/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+/*::  This function converts radians to decimal degrees             :*/
+/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+double rad2deg(double rad) {
+    return (rad * 180 / pi);
+}
+
+double distance(double lat1, double lon1, double lat2, double lon2, char unit) {
+    double theta, dist;
+    theta = lon1 - lon2;
+    dist = sin(deg2rad(lat1)) * sin(deg2rad(lat2)) + cos(deg2rad(lat1)) * cos(deg2rad(lat2)) * cos(deg2rad(theta));
+    dist = acos(dist);
+    dist = rad2deg(dist);
+    dist = dist * 60 * 1.1515;
+    switch(unit) {
+        case 'M':
+            break;
+        case 'K':
+            dist = dist * 1.609344;
+            break;
+        case 'N':
+            dist = dist * 0.8684;
+            break;
+    }
+    return (dist);
+}
+
+
 Stat* Stat::_stat_ptr = NULL;
 
 Stat::Stat(){
@@ -118,6 +167,41 @@ void Stat::PrintLatencyStat(){
         latencyHdlr<<endl;
         currIdx++;
     }
+}
 
-    
+void Stat::PrintQueryLatencyCDF(){
+    if(Query_latency_time.size()==0){
+        return;
+    }
+    UINT32 queryTimeCnt = Query_latency_time.size();
+    cout<<"PrintQueryLatencyCDF() \n";
+    string latencyFile = Settings::outFileName;
+    latencyFile += ".QlatCDF";
+    ofstream latencyHdlr;
+    latencyHdlr.open(latencyFile.c_str(),ios::out | ios::in | ios:: trunc);
+    vector<FLOAT64> total_delay_v;
+    for (int i = 0; i < Query_latency_time.size(); i++) {
+        for (int j = 0; j < Query_latency_time[i]._delay_v.size(); j++) {
+            total_delay_v.push_back(Query_latency_time[i]._delay_v[j]);
+        }
+    }
+    sort(total_delay_v.begin(), total_delay_v.end());
+    FLOAT32 pcent = 0.0;
+    FLOAT32 idx;
+    int total_results = total_delay_v.size();
+    for (int i=0; i<total_delay_v.size(); i++) {
+        if ((i+1)< total_delay_v.size()) {
+            if (total_delay_v[i]<total_delay_v[i+1]) {
+                idx= i+1;
+                pcent = idx/total_results;
+                latencyHdlr<<pcent<<'\t'<<(total_delay_v[i])<<endl;
+            }
+        }
+        else{
+            idx= i+1;
+            pcent = idx/total_results;
+            latencyHdlr<<pcent<<'\t'<<total_delay_v[i]<<endl;
+        }
+    }
+
 }

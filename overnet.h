@@ -10,7 +10,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
-
+#include <sstream>
 #include <assert.h>
 
 using namespace std;
@@ -26,7 +26,7 @@ typedef unsigned int ADDRINT;
 #define GUID_SIZE 44 //160+32*5+32 = 352 bits
 #define PING_SIZE 9 //8 byte UDP header, 1 byte data
 #define PING_PERIOD 5000// 5 seconds 
-
+#define pi 3.14159265358979323846
 #define SHAPE_GAMMA 0.1 //ToDo:check
 #define SCALE_GAMMA (50 / SHAPE_GAMMA) //ToDo:check
 #define ARRIVAL_MEAN 4 //4 requests arrivals per ms
@@ -46,7 +46,10 @@ static inline void InRangePlus (UINT32 & currValue, UINT32 range){
         currValue ++;
 }
 
-
+bool str2StrArr(const string& s, char delim, vector<string>& storeResult);
+double deg2rad(double deg);
+double rad2deg(double rad);
+double distance(double lat1, double lon1, double lat2, double lon2, char unit);
 class Settings
 {
 public:
@@ -68,6 +71,7 @@ public:
         static UINT32 GNRS_K; //global k
         static UINT32 Local_K; //consists of nodes in the insertion AS 
         static UINT32 Regional_K; // consists of nodes in the same country
+        static FLOAT32 Locality_Exponent; //-alpha, -1.5 extreme local, -0.8 regional, -0.4 country, 0 global
 };
 
 struct Query_Latency{
@@ -119,6 +123,7 @@ public:
         
         void PrintRetryStat();
         void PrintLatencyStat();
+        void PrintQueryLatencyCDF();
 private:
         static Stat* _stat_ptr;
         Stat();

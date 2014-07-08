@@ -807,15 +807,21 @@ void Underlay::getQueryNodes(UINT32 guidIdx, vector<UINT32>& _queryNodes, FLOAT3
             }
         } 
     }
-    assert(_queryNodes.size());
+    //assert(_queryNodes.size());
     //debug
     cout<< city_list[global_node_table[global_guid_list[guidIdx].getAddrNodeIdx()].getCityIdx()].getCity()<<","
             <<city_list[global_node_table[global_guid_list[guidIdx].getAddrNodeIdx()].getCityIdx()].getCountry()
             <<" GUID birth city"<<endl;
-    for (int i = 0; i < _queryNodes.size(); i++) {
-        cout<<city_list[global_node_table[_queryNodes[i]].getCityIdx()].getCity()<<","
+    if (_queryNodes.size()) {
+        for (int i = 0; i < _queryNodes.size(); i++) {
+             cout<<city_list[global_node_table[_queryNodes[i]].getCityIdx()].getCity()<<","
                 <<city_list[global_node_table[_queryNodes[i]].getCityIdx()].getCountry()<<" a query city"<<endl;
+        }
+    } else {
+        cout<<"Empty query nodes \n";
     }
+
+    
 
 }
 /*
@@ -834,15 +840,17 @@ UINT32 Underlay::generateWorkload(FLOAT64 mean_arrival, char opt){
         currGUIDIdx = Util::Inst()->GenInt(global_guid_list.size());
         //to do exponent parameter setting
         getQueryNodes(currGUIDIdx, queryNodes, Settings::Locality_Exponent);
-        for (int j = 0; j < queryNodes.size(); j++) {
-            currNodeIdx = queryNodes[j];
-            if (opt == 'Q'&& global_node_table[currNodeIdx].queryGUID(currGUIDIdx, 0)) {
-                generatedCnt++;
-            } else if (opt == 'U' && global_node_table[currNodeIdx].updateGUID(currGUIDIdx, 0)){
-                generatedCnt++;
+        if (queryNodes.size()) {
+            for (int j = 0; j < queryNodes.size(); j++) {
+                currNodeIdx = queryNodes[j];
+                if (opt == 'Q'&& global_node_table[currNodeIdx].queryGUID(currGUIDIdx, 0)) {
+                    generatedCnt++;
+                } else if (opt == 'U' && global_node_table[currNodeIdx].updateGUID(currGUIDIdx, 0)){
+                    generatedCnt++;
+                }
             }
-        }
-        i++;
+            i++;
+        } 
     }
     //statistic keeping
     UINT32 idxDHTCnt = Underlay::Inst()->getIdxRetryCnt(EventScheduler::Inst()->GetCurrentTime(), true);

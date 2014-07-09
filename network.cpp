@@ -239,38 +239,59 @@ void AS::downgradeGNRS(UINT32 nodeIdx, FLOAT64 arrival_time,FLOAT64 offtime, UIN
     EventScheduler::Inst()->AddEvent(aLeaveMsg);
 } //downgrade GNRS membership: remove one of my nodes from service
 
-FLOAT64 AS::getMaxDistance(vector<UINT32> correctHost){
+FLOAT64 Node::getMaxDistance(vector<UINT32> correctHost){
     assert(correctHost.size());
     FLOAT64 maxDistance;
     for (int i = 0; i < correctHost.size(); i++) {
-        if (i==0)
-            maxDistance = Underlay::Inst()->getLatency(_asIdx, Underlay::Inst()->global_node_table[correctHost[i]].getASIdx());
+        if (i==0){
+            if (Settings::Geo_Lat_On) {
+                maxDistance = Underlay::Inst()->getLatency(_nodeIdx, correctHost[i]);
+            } else {
+                maxDistance = Underlay::Inst()->getLatency(_asIdx, Underlay::Inst()->global_node_table[correctHost[i]].getASIdx());
+            }
+        }
+            
         else {
-            if(maxDistance < Underlay::Inst()->getLatency(_asIdx, Underlay::Inst()->global_node_table[correctHost[i]].getASIdx()))
-            maxDistance = Underlay::Inst()->getLatency(_asIdx, Underlay::Inst()->global_node_table[correctHost[i]].getASIdx());
+            if (Settings::Geo_Lat_On && 
+                    maxDistance < Underlay::Inst()->getLatency(_nodeIdx, correctHost[i])) {
+                maxDistance = Underlay::Inst()->getLatency(_nodeIdx, correctHost[i]);
+            } 
+            else if(!Settings::Geo_Lat_On && 
+                    maxDistance < Underlay::Inst()->getLatency(_asIdx, Underlay::Inst()->global_node_table[correctHost[i]].getASIdx())){
+                maxDistance = Underlay::Inst()->getLatency(_asIdx, Underlay::Inst()->global_node_table[correctHost[i]].getASIdx());
+            }
         }
     }
     return maxDistance;
 }
 
-FLOAT64 AS::getMinDistance(vector<UINT32> correctHost){
+FLOAT64 Node::getMinDistance(vector<UINT32> correctHost){
     assert(correctHost.size());
     FLOAT64 minDistance;
     for (int i = 0; i < correctHost.size(); i++) {
-        if (i==0)
-            minDistance = Underlay::Inst()->getLatency(_asIdx, Underlay::Inst()->global_node_table[correctHost[i]].getASIdx());
-        else {
-            if(minDistance > Underlay::Inst()->getLatency(_asIdx, Underlay::Inst()->global_node_table[correctHost[i]].getASIdx()))
-            minDistance = Underlay::Inst()->getLatency(_asIdx, Underlay::Inst()->global_node_table[correctHost[i]].getASIdx());
+        if (i==0){
+            if (Settings::Geo_Lat_On) {
+                minDistance = Underlay::Inst()->getLatency(_nodeIdx, correctHost[i]);
+            } else {
+                minDistance = Underlay::Inst()->getLatency(_asIdx, Underlay::Inst()->global_node_table[correctHost[i]].getASIdx());
+            }
         }
-        //debug
-        //cout<<_asIdx<<","<<Underlay::Inst()->global_node_table[correctHost[i]].getASIdx()<<","<<Underlay::Inst()->getLatency(_asIdx, Underlay::Inst()->global_node_table[correctHost[i]].getASIdx())<<"**";
+            
+        else {
+            if (Settings::Geo_Lat_On && 
+                    minDistance > Underlay::Inst()->getLatency(_nodeIdx, correctHost[i])) {
+                minDistance = Underlay::Inst()->getLatency(_nodeIdx, correctHost[i]);
+            } 
+            else if(!Settings::Geo_Lat_On && 
+                    minDistance > Underlay::Inst()->getLatency(_asIdx, Underlay::Inst()->global_node_table[correctHost[i]].getASIdx())){
+                minDistance = Underlay::Inst()->getLatency(_asIdx, Underlay::Inst()->global_node_table[correctHost[i]].getASIdx());
+            }
+        }
     }
-    //cout<<minDistance<<endl;
     return minDistance;
 }
 
-FLOAT64 AS::calInsertDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost){
+FLOAT64 Node::calInsertDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost){
     FLOAT64 maxDistance;
     FLOAT64 retryDistance;
     if(onlyInglobal.size()==0){
@@ -297,7 +318,7 @@ FLOAT64 AS::calInsertDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglob
 }
 
 
-FLOAT64 AS::calQueryDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost){
+FLOAT64 Node::calQueryDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost){
     FLOAT64 minDistance;
     FLOAT64 retryDistance;
     if(onlyInlocal.size()){
@@ -390,7 +411,7 @@ UINT32 Underlay::getIdxRetryCnt(FLOAT64 currTime, bool isDHTretry){
  * 1. calculate correct host 2. updated local view from the correct host of this operation
  * 3. statistics on delay and retry no. 
  */
-void AS::calCorrectHost(set<UINT32> localHostset, set<UINT32> globalHostset, char opt){
+void Node::calCorrectHost(set<UINT32> localHostset, set<UINT32> globalHostset, char opt){
     assert(opt=='I'||opt=='Q'||opt=='U');
     //find correct host
     set<UINT32>::iterator it;
@@ -455,14 +476,14 @@ void AS::calCorrectHost(set<UINT32> localHostset, set<UINT32> globalHostset, cha
         }
         //update local view of node table
         for (int i = 0; i < onlyInlocal.size(); i++) {
-            assert(_local_view_offNodes.find(onlyInlocal[i]) == _local_view_offNodes.end());
+            assert(Underlay::Inst()->as_v[_asIdx]._local_view_offNodes.find(onlyInlocal[i]) == Underlay::Inst()->as_v[_asIdx]._local_view_offNodes.end());
             if(Underlay::Inst()->global_node_table[onlyInlocal[i]].isInService()==false)
-                _local_view_offNodes.insert(onlyInlocal[i]);
+                Underlay::Inst()->as_v[_asIdx]._local_view_offNodes.insert(onlyInlocal[i]);
             }
         for (int i = 0; i < onlyInglobal.size(); i++) {
             assert(Underlay::Inst()->global_node_table[onlyInglobal[i]].isInService());
-            if(_local_view_offNodes.find(onlyInglobal[i])!= _local_view_offNodes.end())
-                _local_view_offNodes.erase(_local_view_offNodes.find(onlyInglobal[i]));
+            if(Underlay::Inst()->as_v[_asIdx]._local_view_offNodes.find(onlyInglobal[i])!= Underlay::Inst()->as_v[_asIdx]._local_view_offNodes.end())
+                Underlay::Inst()->as_v[_asIdx]._local_view_offNodes.erase(Underlay::Inst()->as_v[_asIdx]._local_view_offNodes.find(onlyInglobal[i]));
             }
     }
     //latency statistics accounting
@@ -493,9 +514,9 @@ bool GNRSOperationMessage::Callback(){
     Underlay::Inst()->determineHost(_guidIdx, globalHostset,-1);
     Underlay::Inst()->determineHost(_guidIdx, localHostset,_src);
     if (_type == MT_GUID_INSERTION || _type == MT_GUID_UPDATE) {
-        Underlay::Inst()->as_v[_src].calCorrectHost(localHostset,globalHostset,'I');
+        Underlay::Inst()->global_node_table[_nodeIdx].calCorrectHost(localHostset,globalHostset,'I');
     } else {
-        Underlay::Inst()->as_v[_src].calCorrectHost(localHostset,globalHostset,'Q');
+        Underlay::Inst()->global_node_table[_nodeIdx].calCorrectHost(localHostset,globalHostset,'Q');
     }
     return true;
 }
@@ -899,10 +920,32 @@ UINT32 Underlay::generateLeaveChurn(UINT32 churnLength, FLOAT64 mean_arrival, FL
     }
     return generatedCnt;
 }
-
+/*
+ if Geo_Lat_On is true, src and dest are nodeIdx, calculate geo latency
+ otherwise, src and dest are asIdx, calculate subAS level topo latency
+ */
 FLOAT64 Underlay::getLatency(UINT32 src, UINT32 dest){
-    assert(src>=0 && src<_num_of_as && dest >=0 && dest < _num_of_as);
-    return (FLOAT64)((FLOAT64)as_dist_matx[src*_num_of_as+dest]/(FLOAT64)1000); //change us to ms
+    if (Settings::Geo_Lat_On) {
+        assert(src>=0 && src < global_node_table.size() && dest >=0 && dest < global_node_table.size());
+        FLOAT32 lat1, lat2, lon1, lon2;
+        lat1 = city_list[global_node_table[src].getCityIdx()].getLat();
+        lon1 = city_list[global_node_table[src].getCityIdx()].getLon();
+        lat2 = city_list[global_node_table[dest].getCityIdx()].getLat();
+        lon2 = city_list[global_node_table[dest].getCityIdx()].getLon();
+        FLOAT64 currDist = distance(lat1, lon1, lat2, lon2, 'K');
+        if (currDist ==0) {
+            currDist = Util::Inst()->GenInt(40);
+        }
+        FLOAT64 currDelay = currDist * 5.41 / ((FLOAT64)1000);
+        if (global_node_table[src].getASIdx() == global_node_table[dest].getASIdx()) {
+            return currDelay*(1+Settings::IntraLatWeight);
+        } else {
+            return currDelay*(1+Settings::InterLatWeight);
+        }
+    } else {
+        assert(src>=0 && src<_num_of_as && dest >=0 && dest < _num_of_as);
+        return (FLOAT64)((FLOAT64)as_dist_matx[src*_num_of_as+dest]/(FLOAT64)1000); //change us to ms
+    }
 }
 bool Underlay::isAvailable(UINT32 nodeIdx, int asIdx){
     assert(nodeIdx >=0 && nodeIdx < global_node_table.size());

@@ -72,6 +72,9 @@ public:
         static UINT32 Local_K; //consists of nodes in the insertion AS 
         static UINT32 Regional_K; // consists of nodes in the same country
         static FLOAT32 Locality_Exponent; //-alpha, -1.5 extreme local, -0.8 regional, -0.4 country, 0 global
+        static bool Geo_Lat_On;
+        static FLOAT32 InterLatWeight;
+        static FLOAT32 IntraLatWeight;
 };
 
 struct Query_Latency{

@@ -63,6 +63,10 @@ private:
     bool _in_service;
     UINT32 _asIdx;
     FLOAT64 _last_update_time;
+    FLOAT64 getMaxDistance(vector<UINT32> correctHost);
+    FLOAT64 getMinDistance(vector<UINT32> correctHost);
+    FLOAT64 calInsertDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost);
+    FLOAT64 calQueryDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost);
 public:
     UINT32 _hashID; //hash value of the node in GNRS space, uniquely identify a node
     Node (UINT32 hashID, UINT32 asIdx, FLOAT64 time);
@@ -79,6 +83,7 @@ public:
     bool insertGUID(UINT32 guid, FLOAT64 time);//time is the absolute finish time
     bool queryGUID(UINT32 guid, FLOAT64 time);
     bool updateGUID(UINT32 guid, FLOAT64 time);
+    void calCorrectHost(set<UINT32> localHostset, set<UINT32> globalHostset, char opt);
 };
 bool NodeSortPredicate( const Node d1, const Node d2);
 
@@ -89,13 +94,8 @@ private:
     UINT32 _capacity;
     UINT32 _asIdx;
     UINT32 _asNum;
-    string _asCntry;
-    FLOAT64 getMaxDistance(vector<UINT32> correctHost);
-    FLOAT64 getMinDistance(vector<UINT32> correctHost);
-    FLOAT64 calInsertDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost);
-    FLOAT64 calQueryDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost);
+    string _asCntry; 
 public:
-    
     AS(UINT32 asindex, UINT32 tier, UINT32 capacity, UINT32 asNum, string asCountry);
     set<UINT32> _myCities;
     set <UINT32> _myNodes; //index of my nodes in the global_node_table
@@ -113,7 +113,6 @@ public:
     void downgradeGNRS(UINT32 nodeIdx, FLOAT64 arrival_time,FLOAT64 offtime,UINT32 churnRounds); //remove one nodes from service
     void beNotifedAjoin(UINT32 nodeIdx);
     void beNotifedAleave(UINT32 nodeIdx);
-    void calCorrectHost(set<UINT32> localHostset, set<UINT32> globalHostset, char opt);
 };
 
 class GNRSOperationMessage : public Message

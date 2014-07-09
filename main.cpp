@@ -39,6 +39,9 @@ FLOAT64 Settings::UpdatePerNode = 1000;
 string Settings::outFileName;
 FLOAT64 Settings::ChurnPerNode=0.01;
 FLOAT32 Settings::Locality_Exponent = -0.4;
+bool Settings::Geo_Lat_On = false;
+FLOAT32 Settings::InterLatWeight = 0.0;
+FLOAT32 Settings::IntraLatWeight = 0.0;
 /*!
  *  @brief Computes floor(log2(n))
  *  Works by finding position of MSB set.
@@ -175,6 +178,24 @@ void ParseArg(const char * argv)
 	ss <<arg.substr(18);
 	ss >>Settings::Locality_Exponent;
     }
+    else if (arg.find("geo_lat_on=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(11);
+	ss >>Settings::Geo_Lat_On;
+    }
+    else if (arg.find("intralatweight=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(15);
+	ss >>Settings::IntraLatWeight;
+    }
+    else if (arg.find("interlatweight=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(15);
+	ss >>Settings::InterLatWeight;
+    }
 }
 
 int main(int argc, const char* argv[])
@@ -244,7 +265,12 @@ int main(int argc, const char* argv[])
     cout<<"Settings::QueryPerNode="<<Settings::QueryPerNode<<endl;
     cout<<"Settings::UpdatePerNode="<<Settings::UpdatePerNode<<endl;
     cout<<"Settings::ChurnPerNode="<<Settings::ChurnPerNode<<endl;
-    cout<<"Settings::Locality_Exponent="<<Settings::Locality_Exponent<<endl; 
+    cout<<"Settings::Locality_Exponent="<<Settings::Locality_Exponent<<endl;
+    if (Settings::Geo_Lat_On) {
+        cout<<"Settings::Geo_Lat_On = true"<<endl;
+    } else {
+        cout<<"Settings::Geo_Lat_On = false"<<endl;
+    }
     
     for (UINT32 i = 0; i < Underlay::Inst()->GetNumOfNode(); i++) {
         Stat::Migration_per_node.push_back(0);

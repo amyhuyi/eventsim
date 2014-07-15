@@ -205,3 +205,39 @@ void Stat::PrintQueryLatencyCDF(){
     }
 
 }
+void Stat::PrintUpdateLatencyCDF(){
+    if(Insertion_latency_time.size()==0){
+        return;
+    }
+    UINT32 updateTimeCnt = Insertion_latency_time.size();
+    cout<<"PrintUpdateLatencyCDF() \n";
+    string latencyFile = Settings::outFileName;
+    latencyFile += ".UlatCDF";
+    ofstream latencyHdlr;
+    latencyHdlr.open(latencyFile.c_str(),ios::out | ios::in | ios:: trunc);
+    vector<FLOAT64> total_delay_v;
+    for (int i = 0; i < Insertion_latency_time.size(); i++) {
+        for (int j = 0; j < Insertion_latency_time[i]._delay_v.size(); j++) {
+            total_delay_v.push_back(Insertion_latency_time[i]._delay_v[j]);
+        }
+    }
+    sort(total_delay_v.begin(), total_delay_v.end());
+    FLOAT32 pcent = 0.0;
+    FLOAT32 idx;
+    int total_results = total_delay_v.size();
+    for (int i=0; i<total_delay_v.size(); i++) {
+        if ((i+1)< total_delay_v.size()) {
+            if (total_delay_v[i]<total_delay_v[i+1]) {
+                idx= i+1;
+                pcent = idx/total_results;
+                latencyHdlr<<pcent<<'\t'<<(total_delay_v[i])<<endl;
+            }
+        }
+        else{
+            idx= i+1;
+            pcent = idx/total_results;
+            latencyHdlr<<pcent<<'\t'<<total_delay_v[i]<<endl;
+        }
+    }
+
+}

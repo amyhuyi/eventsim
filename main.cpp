@@ -38,10 +38,15 @@ FLOAT64 Settings::QueryPerNode = 10000;
 FLOAT64 Settings::UpdatePerNode = 1000;
 string Settings::outFileName;
 FLOAT64 Settings::ChurnPerNode=0.01;
-FLOAT32 Settings::Locality_Exponent = -0.4;
 bool Settings::Geo_Lat_On = false;
+bool Settings::LocMobSync = true;
+bool Settings::BirthLocality = true;
 FLOAT32 Settings::InterLatWeight = 0.0;
 FLOAT32 Settings::IntraLatWeight = 0.0;
+FLOAT32 Settings::StrongLocalityPerc = 0.6;
+FLOAT32 Settings::MedLocalityPerc = 0.4;
+FLOAT32 Settings::LocalMobilityPerc = 0.6;
+FLOAT32 Settings::RegionalMobilityPerc =0.2;
 /*!
  *  @brief Computes floor(log2(n))
  *  Works by finding position of MSB set.
@@ -172,12 +177,6 @@ void ParseArg(const char * argv)
 	ss <<arg.substr(13);
 	ss >>Settings::ChurnPerNode;
     }
-    else if (arg.find("locality_exponent=") != string::npos)
-    {
-	stringstream ss (stringstream::in | stringstream::out);
-	ss <<arg.substr(18);
-	ss >>Settings::Locality_Exponent;
-    }
     else if (arg.find("geo_lat_on=") != string::npos)
     {
 	stringstream ss (stringstream::in | stringstream::out);
@@ -195,6 +194,42 @@ void ParseArg(const char * argv)
 	stringstream ss (stringstream::in | stringstream::out);
 	ss <<arg.substr(15);
 	ss >>Settings::InterLatWeight;
+    }
+    else if (arg.find("stronglocalityperc=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(19);
+	ss >>Settings::StrongLocalityPerc;
+    }
+    else if (arg.find("medlocalityperc=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(16);
+	ss >>Settings::MedLocalityPerc;
+    }
+    else if (arg.find("locmobsync=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(11);
+	ss >>Settings::LocMobSync;
+    }
+    else if (arg.find("localmobilityperc=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(18);
+	ss >>Settings::LocalMobilityPerc;
+    }
+    else if (arg.find("regionalmobilityperc=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(21);
+	ss >>Settings::RegionalMobilityPerc;
+    }
+    else if (arg.find("birthlocality=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(14);
+	ss >>Settings::BirthLocality;
     }
 }
 
@@ -241,12 +276,6 @@ int main(int argc, const char* argv[])
     */
     cout<<"total # nodes "<<Underlay::Inst()->global_node_table.size()<<endl;
     //Settings::DHTHop = log10((FLOAT64)Underlay::Inst()->global_node_table.size());
-    /*
-    if(Settings::QueryHours > Settings::UpdateHours)
-        Settings::EndTime = Settings::QueryHours;
-    else
-        Settings::EndTime = Settings::UpdateHours;
-    */
     cout<<"Settings::"<<endl;
     cout<<"Settings::EndTime="<<Settings::EndTime<<endl;
     cout<<"Settings::TestThreshold="<<Settings::TestThreshold<<endl;
@@ -265,13 +294,25 @@ int main(int argc, const char* argv[])
     cout<<"Settings::QueryPerNode="<<Settings::QueryPerNode<<endl;
     cout<<"Settings::UpdatePerNode="<<Settings::UpdatePerNode<<endl;
     cout<<"Settings::ChurnPerNode="<<Settings::ChurnPerNode<<endl;
-    cout<<"Settings::Locality_Exponent="<<Settings::Locality_Exponent<<endl;
+    cout<<"Settings::MedLocalityPerc="<<Settings::MedLocalityPerc<<endl;
+    cout<<"Settings::StrongLocalityPerc="<<Settings::StrongLocalityPerc<<endl;
+    cout<<"Settings::LocalMobilityPerc="<<Settings::LocalMobilityPerc<<endl;
+    cout<<"Settings::RegionalMobilityPerc="<<Settings::RegionalMobilityPerc<<endl;
     if (Settings::Geo_Lat_On) {
         cout<<"Settings::Geo_Lat_On = true"<<endl;
     } else {
         cout<<"Settings::Geo_Lat_On = false"<<endl;
     }
-    
+    if (Settings::LocMobSync) {
+        cout<<"Settings::LocMobSync = true"<<endl;
+    } else {
+        cout<<"Settings::LocMobSync = false"<<endl;
+    }
+    if (Settings::BirthLocality) {
+        cout<<"Settings::BirthLocality = true"<<endl;
+    } else {
+        cout<<"Settings::BirthLocality = false"<<endl;
+    }
     for (UINT32 i = 0; i < Underlay::Inst()->GetNumOfNode(); i++) {
         Stat::Migration_per_node.push_back(0);
         Stat::Ping_per_node.push_back(0);
@@ -293,24 +334,6 @@ int main(int argc, const char* argv[])
 	}
 	EventScheduler::Inst()->NextEvent();
     }
-    /*
-    for (int i = 0; i < Stat::Query_latency_time.size(); i++) {
-       cout<<Stat::Query_latency_time[i]._delay<<" "<<Stat::Query_latency_time[i]._time<<endl;
-    }
-    cout<<"Stat::Insertion_latency_time.size() "<<Stat::Insertion_latency_time.size()<<endl;
-    for (int i = 0; i < Stat::Insertion_latency_time.size(); i++) {
-       cout<<Stat::Insertion_latency_time[i]._delay<<" "<<Stat::Insertion_latency_time[i]._time<<endl;
-    }
-    cout<<"Stat::Retry_Cnt.size()"<<Stat::Retry_Cnt.size()<<endl;
-    for (int i = 0; i < Stat::Retry_Cnt.size();i++) {
-       cout<<Stat::Retry_Cnt[i]._retry<<" "<<Stat::Retry_Cnt[i]._operation<<" "<<Stat::Retry_Cnt[i]._time<<" "<<Stat::Retry_Cnt[i]._delay<<endl;
-    }
-    
-    for (int i = 0; i < Stat::Stat::DHT_Retry_time.size(); i++) {
-       cout<<Stat::Stat::DHT_Retry_time[i]._retry<<" "<<Stat::Stat::DHT_Retry_time[i]._operation<<" "<<Stat::Stat::DHT_Retry_time[i]._time<<endl;
-    }
-    */
-    
     cout<<"Stat::Retry_Cnt.size()"<<Stat::Retry_Cnt.size()<<endl;
     for (int i = 0; i < Stat::Retry_Cnt.size();i++) {
        cout<<Stat::Retry_Cnt[i]._time<<" "<<Stat::Retry_Cnt[i]._retryUpdate<<" "<<Stat::Retry_Cnt[i]._retryQuery<<endl;
@@ -322,4 +345,5 @@ int main(int argc, const char* argv[])
     //Stat::Inst()->PrintRetryStat();
     //Stat::Inst()->PrintLatencyStat();
     Stat::Inst()->PrintQueryLatencyCDF();
+    Stat::Inst()->PrintUpdateLatencyCDF();
 }

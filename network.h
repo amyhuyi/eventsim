@@ -40,7 +40,7 @@ public:
 class GUID
 {
 private:
-	
+        UINT32 _birth_nodeIdx;
 	UINT32 _vphostIdx;  //index of the virtual primary host into global node table
 	FLOAT64 _last_update_time;
         UINT32 _address_nodeIdx;      // current Node (PoP) Idx the GUID is attached to, which is the node inserted this GUID
@@ -52,6 +52,7 @@ public:
         UINT32 getvphostIdx();
         FLOAT64 getLastUpdateTime ();
         UINT32 getAddrNodeIdx();
+        UINT32 getBirthNodeIDx();
         UINT32 getAddrASIdx();
         void updateAddrNodeIdx(UINT32 newNodeIdx, FLOAT64 time);
 };
@@ -140,6 +141,8 @@ private:
     void determineGlobalHost(UINT32 guidIdx, set<UINT32>& _hostNodeIdx, int asIdx);
     UINT32 getCityIdx(string cityName);
     void getQueryNodes(UINT32 guidIdx, vector<UINT32>& _queryNodes, FLOAT32 exponent);
+    UINT32 getUpdateNode(UINT32 guidIdx, char MobilityDegree);
+    UINT32 issueQueries (UINT32 guidIdx, FLOAT32 exponent);
 public:
     UINT32 getvpHostIdx(UINT32 guid, UINT32 start_idx, UINT32 end_idx);
     vector<Node> global_node_table; //sorted based on node ID
@@ -158,14 +161,15 @@ public:
     void ReadInCityInfo(const char* cityFile);
     void InitializeNetwork(); //assign nodes to each AS based on capacity
     void InitializeWorkload();//create GUID insertion workload
-    UINT32 generateWorkload(FLOAT64 mean_arrival, char opt);//opt = 'U'/'Q'
+    UINT32 generateQueryWorkload(FLOAT64 mean_arrival);
+    UINT32 generateUpdateWorkload(FLOAT64 mean_arrival);
     UINT32 generateLeaveChurn(UINT32 churnLength, FLOAT64 mean_arrival, FLOAT64 sessionTime, UINT32 onOffTimes);
     void SynchNetwork();
     FLOAT64 getLatency(UINT32 src, UINT32 dest);
     UINT32 migrationOverhead4Join(UINT32 nodeIdx);
     UINT32 migrationOverhead4Leave(UINT32 nodeIdx);
     void getNeighbors(UINT32 nodeIdx, set<UINT32> & neighborsIdx_v); // put all online neighbors into neighborsIdx_v
-    void determineHost(UINT32 guidIdx, set<UINT32>& _hostNodeIdx, int asIdx);
+    void determineHost(UINT32 guidIdx, set<UINT32>& glbCalHostSet, set<UINT32>& lclCalHostSet, int nodeIdx);
     UINT32 getIdxRetryCnt(FLOAT64 currTime, bool isDHTretry);
     UINT32 getIdxQueryLatency(FLOAT64 currTime, bool isInsertion);
 };

@@ -61,6 +61,7 @@ bool CITY::isGW(){
 
 GUID::GUID (UINT32 id, UINT32 nodeIdx, FLOAT64 time){
     _guid = id;
+    _birth_nodeIdx = nodeIdx;
     _address_nodeIdx = nodeIdx;
     _vphostIdx = Underlay::Inst()->getvpHostIdx(_guid,0,Underlay::Inst()->global_node_table.size()-1);
     _last_update_time = time;
@@ -85,7 +86,11 @@ void GUID::updateAddrNodeIdx(UINT32 newNodeIdx, FLOAT64 time){
     _address_nodeIdx = newNodeIdx;
     _last_update_time = time;
 }
-        
+
+UINT32 GUID::getBirthNodeIDx(){
+    return _birth_nodeIdx;
+}
+
 UINT32 GUID::getAddrNodeIdx(){
     return _address_nodeIdx;
 }
@@ -244,21 +249,11 @@ FLOAT64 Node::getMaxDistance(vector<UINT32> correctHost){
     FLOAT64 maxDistance;
     for (int i = 0; i < correctHost.size(); i++) {
         if (i==0){
-            if (Settings::Geo_Lat_On) {
-                maxDistance = Underlay::Inst()->getLatency(_nodeIdx, correctHost[i]);
-            } else {
-                maxDistance = Underlay::Inst()->getLatency(_asIdx, Underlay::Inst()->global_node_table[correctHost[i]].getASIdx());
-            }
-        }
-            
+            maxDistance = Underlay::Inst()->getLatency(_nodeIdx, correctHost[i]);
+        }  
         else {
-            if (Settings::Geo_Lat_On && 
-                    maxDistance < Underlay::Inst()->getLatency(_nodeIdx, correctHost[i])) {
+            if (maxDistance < Underlay::Inst()->getLatency(_nodeIdx, correctHost[i])) {
                 maxDistance = Underlay::Inst()->getLatency(_nodeIdx, correctHost[i]);
-            } 
-            else if(!Settings::Geo_Lat_On && 
-                    maxDistance < Underlay::Inst()->getLatency(_asIdx, Underlay::Inst()->global_node_table[correctHost[i]].getASIdx())){
-                maxDistance = Underlay::Inst()->getLatency(_asIdx, Underlay::Inst()->global_node_table[correctHost[i]].getASIdx());
             }
         }
     }
@@ -270,22 +265,12 @@ FLOAT64 Node::getMinDistance(vector<UINT32> correctHost){
     FLOAT64 minDistance;
     for (int i = 0; i < correctHost.size(); i++) {
         if (i==0){
-            if (Settings::Geo_Lat_On) {
-                minDistance = Underlay::Inst()->getLatency(_nodeIdx, correctHost[i]);
-            } else {
-                minDistance = Underlay::Inst()->getLatency(_asIdx, Underlay::Inst()->global_node_table[correctHost[i]].getASIdx());
-            }
+            minDistance = Underlay::Inst()->getLatency(_nodeIdx, correctHost[i]);
         }
-            
         else {
-            if (Settings::Geo_Lat_On && 
-                    minDistance > Underlay::Inst()->getLatency(_nodeIdx, correctHost[i])) {
+            if (minDistance > Underlay::Inst()->getLatency(_nodeIdx, correctHost[i])) {
                 minDistance = Underlay::Inst()->getLatency(_nodeIdx, correctHost[i]);
             } 
-            else if(!Settings::Geo_Lat_On && 
-                    minDistance > Underlay::Inst()->getLatency(_asIdx, Underlay::Inst()->global_node_table[correctHost[i]].getASIdx())){
-                minDistance = Underlay::Inst()->getLatency(_asIdx, Underlay::Inst()->global_node_table[correctHost[i]].getASIdx());
-            }
         }
     }
     return minDistance;
@@ -511,8 +496,7 @@ bool GNRSOperationMessage::Callback(){
     }
     set<UINT32> localHostset; // local AS determined host set
     set<UINT32> globalHostset; //global determined host set
-    Underlay::Inst()->determineHost(_guidIdx, globalHostset,-1);
-    Underlay::Inst()->determineHost(_guidIdx, localHostset,_src);
+    Underlay::Inst()->determineHost(_guidIdx, globalHostset,localHostset,_nodeIdx);
     if (_type == MT_GUID_INSERTION || _type == MT_GUID_UPDATE) {
         Underlay::Inst()->global_node_table[_nodeIdx].calCorrectHost(localHostset,globalHostset,'I');
     } else {
@@ -801,8 +785,15 @@ void Underlay::getQueryNodes(UINT32 guidIdx, vector<UINT32>& _queryNodes, FLOAT3
     FLOAT32 totalWeight=0;
     FLOAT32 lat1, lon1, lat2, lon2;
     FLOAT32 currDistance;
-    lat1 = city_list[global_node_table[global_guid_list[guidIdx].getAddrNodeIdx()].getCityIdx()].getLat();
-    lon1 = city_list[global_node_table[global_guid_list[guidIdx].getAddrNodeIdx()].getCityIdx()].getLon();
+    if (Settings::BirthLocality) {
+        lat1 = city_list[global_node_table[global_guid_list[guidIdx].getBirthNodeIDx()].getCityIdx()].getLat();
+        lon1 = city_list[global_node_table[global_guid_list[guidIdx].getBirthNodeIDx()].getCityIdx()].getLon();
+    } else {
+        lat1 = city_list[global_node_table[global_guid_list[guidIdx].getAddrNodeIdx()].getCityIdx()].getLat();
+        lon1 = city_list[global_node_table[global_guid_list[guidIdx].getAddrNodeIdx()].getCityIdx()].getLon();
+    }
+
+    
     for (int i = 0; i < gw_cities.size(); i++) {
         lat2 = city_list[gw_cities[i]].getLat();
         lon2 = city_list[gw_cities[i]].getLon();
@@ -842,51 +833,158 @@ void Underlay::getQueryNodes(UINT32 guidIdx, vector<UINT32>& _queryNodes, FLOAT3
         cout<<"Empty query nodes \n";
     }
 
-    
+}
 
+UINT32 Underlay::issueQueries (UINT32 currGUIDIdx, FLOAT32 exponent){
+    vector<UINT32> queryNodes;
+    UINT32 generatedCnt =0;
+    UINT32 currNodeIdx;
+    getQueryNodes(currGUIDIdx, queryNodes, exponent);
+    if (queryNodes.size()) {
+        for (int j = 0; j < queryNodes.size(); j++) {
+            currNodeIdx = queryNodes[j];
+            if (global_node_table[currNodeIdx].queryGUID(currGUIDIdx, 0)) {
+                generatedCnt++;
+            }
+        }
+    }
+    //statistic keeping
+    UINT32 idxDHTCnt = Underlay::Inst()->getIdxRetryCnt(EventScheduler::Inst()->GetCurrentTime(), true);
+    UINT32 idxRetryCnt = Underlay::Inst()->getIdxRetryCnt(EventScheduler::Inst()->GetCurrentTime(), false);
+    Stat::DHT_RetryCnt[idxDHTCnt]._issuedQuery += generatedCnt;
+    Stat::Retry_Cnt[idxRetryCnt]._issuedQuery += generatedCnt;
+    return generatedCnt;
 }
 /*
- generate update or query workload, insert is done at network initialization
+ generate query workload: independent of update
  */
-UINT32 Underlay::generateWorkload(FLOAT64 mean_arrival, char opt){
-    assert(opt == 'U' || opt == 'Q');
-    UINT32 currGUIDIdx, currNodeIdx, currASIdx;
-    UINT32 currRound =0, generatedCnt =0;
-    Util::Inst() ->ResetPoisson(mean_arrival);
-    vector<UINT32> queryNodes;
+UINT32 Underlay::generateQueryWorkload(FLOAT64 mean_arrival){
+    UINT32 currGUIDIdx;
+    UINT32 currRound =0, generatedCnt =0, totalGenerated =0;
+    //Util::Inst() ->ResetPoisson(mean_arrival);
     //currRound = (UINT32)Util::Inst()->GenPoisson();
     currRound = (UINT32)(mean_arrival/200);//assume each guid has 200 queries, total query no. in this round is mean_arrival
     int i=0;
     while(i<currRound){
         currGUIDIdx = Util::Inst()->GenInt(global_guid_list.size());
-        //to do exponent parameter setting
-        getQueryNodes(currGUIDIdx, queryNodes, Settings::Locality_Exponent);
-        if (queryNodes.size()) {
-            for (int j = 0; j < queryNodes.size(); j++) {
-                currNodeIdx = queryNodes[j];
-                if (opt == 'Q'&& global_node_table[currNodeIdx].queryGUID(currGUIDIdx, 0)) {
-                    generatedCnt++;
-                } else if (opt == 'U' && global_node_table[currNodeIdx].updateGUID(currGUIDIdx, 0)){
-                    generatedCnt++;
-                }
-            }
+        if (i<=currRound*Settings::StrongLocalityPerc) {
+            generatedCnt = issueQueries(currGUIDIdx,-0.8);
+        } else if (i<=currRound*(Settings::StrongLocalityPerc+Settings::MedLocalityPerc)){
+            generatedCnt = issueQueries(currGUIDIdx,-0.4);
+        } else {
+            generatedCnt = issueQueries(currGUIDIdx,0);
+        }
+        if (generatedCnt) {
+            totalGenerated += generatedCnt;
             i++;
         } 
+    }
+    //debug
+    cout<<"suppose to generate "<<mean_arrival<<" Queries, actual generated"<<totalGenerated<<endl;
+    return totalGenerated;
+}
+
+UINT32 Underlay::getUpdateNode(UINT32 guidIdx, char MobilityDegree){
+    assert(MobilityDegree == 'L' || MobilityDegree == 'R'|| MobilityDegree == 'G');
+    UINT32 currNodeIdx = global_guid_list[guidIdx].getAddrNodeIdx();
+    UINT32 currCityIdx = global_node_table[currNodeIdx].getCityIdx();
+    UINT32 updatedNodeIdx = currNodeIdx;
+    UINT32 updatedCityIdx;
+    vector<UINT32> candidate_v;
+    if (MobilityDegree == 'L') {
+        if (city_list[currCityIdx]._nodeIdx_v.size()>1) {
+            candidate_v = city_list[currCityIdx]._nodeIdx_v;
+            for (int i = 0; i < candidate_v.size(); i++) {
+                if (candidate_v[i] == currNodeIdx) {
+                    candidate_v.erase(candidate_v.begin()+i);
+                    break;
+                }
+            }
+            updatedNodeIdx = candidate_v[Util::Inst()->GenInt(candidate_v.size())];           
+        } 
+    }
+    else if (MobilityDegree == 'R'){
+        string currCountry = city_list[currCityIdx].getCountry();
+        for (int i = 0; i < gw_cities.size(); i++) {
+            if (city_list[gw_cities[i]].getCountry() == currCountry) {
+                candidate_v.push_back(gw_cities[i]);
+            }
+        }
+        if (candidate_v.size()) {
+            updatedCityIdx = candidate_v[Util::Inst()->GenInt(candidate_v.size())];
+            UINT32 randIdx = Util::Inst()->GenInt(city_list[updatedCityIdx]._nodeIdx_v.size());
+            updatedNodeIdx = city_list[updatedCityIdx]._nodeIdx_v[randIdx];
+        }    
+    }
+    else {
+        updatedCityIdx = gw_cities[Util::Inst()->GenInt(gw_cities.size())];
+        UINT32 randIdx = Util::Inst()->GenInt(city_list[updatedCityIdx]._nodeIdx_v.size());
+        updatedNodeIdx = city_list[updatedCityIdx]._nodeIdx_v[randIdx];
+    }
+    assert(updatedNodeIdx>=0 && updatedNodeIdx<global_node_table.size());
+    //debug
+    cout<<"currNodeIdx: "<<currNodeIdx<<city_list[currCityIdx].getCity()<<" , "<<city_list[currCityIdx].getCountry()<<" MobilityDegree:"<<MobilityDegree
+            <<"updatedNodeIDx" <<updatedNodeIdx<<city_list[global_node_table[updatedNodeIdx].getCityIdx()].getCity()<<","
+            <<city_list[global_node_table[updatedNodeIdx].getCityIdx()].getCountry()<<endl;
+    return updatedNodeIdx;
+}
+/*
+ generate update workload: mobility local, regional, global
+ * and associated query workload
+ */
+UINT32 Underlay::generateUpdateWorkload(FLOAT64 mean_arrival){
+    UINT32 currGUIDIdx, currNodeIdx;
+    UINT32 currRound =0, generatedCnt =0;
+    FLOAT32 qLocality_exp;
+    //Util::Inst() ->ResetPoisson(mean_arrival);
+    //currRound = (UINT32)Util::Inst()->GenPoisson();
+    currRound = (UINT32)(mean_arrival);//assume each guid has 200 queries, total query no. in this round is mean_arrival
+    int i=0;
+    while(i<currRound){
+        currGUIDIdx = Util::Inst()->GenInt(global_guid_list.size());
+        if (i<=currRound*Settings::LocalMobilityPerc) {
+            cout<<"A local Mobility GUID update"<<endl;
+            currNodeIdx = getUpdateNode(currGUIDIdx, 'L');
+            if (Settings::LocMobSync) {
+                qLocality_exp = -0.8;
+            } 
+        } else if (i<=currRound*(Settings::LocalMobilityPerc+Settings::RegionalMobilityPerc)){
+            cout<<"A regional Mobility GUID update"<<endl;
+            currNodeIdx = getUpdateNode(currGUIDIdx, 'R');
+            if (Settings::LocMobSync) {
+                qLocality_exp = -0.4;
+            }
+        } else {
+            cout<<"A global mobility GUID update"<<endl;
+            currNodeIdx = getUpdateNode(currGUIDIdx, 'G');
+            if (Settings::LocMobSync) {
+                qLocality_exp = 0;
+            }
+        }
+        if (global_node_table[currNodeIdx].updateGUID(currGUIDIdx, 0)){
+            if (!Settings::LocMobSync) {
+                if (i<=currRound*Settings::StrongLocalityPerc) {
+                    qLocality_exp = -0.8;
+                } 
+                else if (i<=currRound*(Settings::StrongLocalityPerc+Settings::MedLocalityPerc)) {
+                    qLocality_exp = -0.4;
+                }
+                else {
+                    qLocality_exp = -0.4;
+                }
+            }
+            issueQueries(currGUIDIdx,qLocality_exp);
+            i++;
+        }
     }
     //statistic keeping
     UINT32 idxDHTCnt = Underlay::Inst()->getIdxRetryCnt(EventScheduler::Inst()->GetCurrentTime(), true);
     UINT32 idxRetryCnt = Underlay::Inst()->getIdxRetryCnt(EventScheduler::Inst()->GetCurrentTime(), false);
-    if(opt == 'I' || opt == 'U' ){
-        Stat::DHT_RetryCnt[idxDHTCnt]._issuedUpdate = generatedCnt;
-        Stat::Retry_Cnt[idxRetryCnt]._issuedUpdate = generatedCnt;
-    }
-    else if(opt == 'Q'){
-        Stat::DHT_RetryCnt[idxDHTCnt]._issuedQuery = generatedCnt;
-        Stat::Retry_Cnt[idxRetryCnt]._issuedQuery = generatedCnt;
-    }
+    Stat::DHT_RetryCnt[idxDHTCnt]._issuedUpdate = i;
+    Stat::Retry_Cnt[idxRetryCnt]._issuedUpdate = i;
     //debug
-    cout<<"suppose to generate "<<mean_arrival<<" "<<opt<<" actual generated"<<generatedCnt<<endl;
-    return generatedCnt;
+    cout<<"suppose to generate "<<mean_arrival<<" Updates, actual generated"<<i<<endl;
+    return i;
 }
 
 /*
@@ -921,12 +1019,12 @@ UINT32 Underlay::generateLeaveChurn(UINT32 churnLength, FLOAT64 mean_arrival, FL
     return generatedCnt;
 }
 /*
- if Geo_Lat_On is true, src and dest are nodeIdx, calculate geo latency
- otherwise, src and dest are asIdx, calculate subAS level topo latency
+ if src and dest are nodeIdx, Geo_Lat_On is true, calculate geo latency
+ otherwise, calculate AS(sub-as here) level topo latency
  */
 FLOAT64 Underlay::getLatency(UINT32 src, UINT32 dest){
+    assert(src>=0 && src < global_node_table.size() && dest >=0 && dest < global_node_table.size());
     if (Settings::Geo_Lat_On) {
-        assert(src>=0 && src < global_node_table.size() && dest >=0 && dest < global_node_table.size());
         FLOAT32 lat1, lat2, lon1, lon2;
         lat1 = city_list[global_node_table[src].getCityIdx()].getLat();
         lon1 = city_list[global_node_table[src].getCityIdx()].getLon();
@@ -943,8 +1041,7 @@ FLOAT64 Underlay::getLatency(UINT32 src, UINT32 dest){
             return currDelay*(1+Settings::InterLatWeight);
         }
     } else {
-        assert(src>=0 && src<_num_of_as && dest >=0 && dest < _num_of_as);
-        return (FLOAT64)((FLOAT64)as_dist_matx[src*_num_of_as+dest]/(FLOAT64)1000); //change us to ms
+        return ((FLOAT64)as_dist_matx[global_node_table[src].getASIdx()*_num_of_as+global_node_table[dest].getASIdx()]/(FLOAT64)1000); //change us to ms
     }
 }
 bool Underlay::isAvailable(UINT32 nodeIdx, int asIdx){
@@ -961,6 +1058,7 @@ bool Underlay::isAvailable(UINT32 nodeIdx, int asIdx){
     }
 }
 //find the local replica host -- numerically nearest nodes online and deployed in the same city
+//only the query node is within the same city, then local host can be correctly located
 void Underlay::determineLocalHost(UINT32 guidIdx, set<UINT32>& _hostNodeIdx, int asIdx){
     //set<UINT32> localNodes = as_v[global_guid_list[guidIdx].getAddrASIdx()]._myNodes;
     //set<UINT32>::iterator it;
@@ -1096,20 +1194,26 @@ void Underlay::determineRegionalHost(UINT32 guidIdx, set<UINT32>& _hostNodeIdx, 
 
 /*
  first determine GNRS_K global replica
- then determine Regional_K regional replica
- finally determine Local_K local replica
- the final result is the union of the three set, an overlapping replica accounts for all replicas it qualifies
+ then determine Regional_K regional replica if the request node in the same region as the GUID
+ finally determine Local_K local replica if the request node in the same city as the GUID 
+ the final result is the union of the three set
  */
-void Underlay::determineHost(UINT32 guidIdx, set<UINT32> & _hostNodeIdx, int asIdx){
-    _hostNodeIdx.clear();
+void Underlay::determineHost(UINT32 guidIdx, set<UINT32>& glbCalHostSet, set<UINT32>& lclCalHostSet, int nodeIdx){
+    assert(nodeIdx>=0 && nodeIdx<global_node_table.size());
+    int asIdx = global_node_table[nodeIdx].getASIdx();
+    string currCntry = as_v[global_guid_list[guidIdx].getAddrASIdx()].getASCntry();
+    UINT32 currNodeIdx = global_guid_list[guidIdx].getAddrNodeIdx();
     if(Settings::GNRS_K){
-        determineGlobalHost(guidIdx,_hostNodeIdx,asIdx);
+        determineGlobalHost(guidIdx,glbCalHostSet,-1);
+        determineGlobalHost(guidIdx,lclCalHostSet,asIdx);
     }
-    if(Settings::Regional_K){
-        determineRegionalHost(guidIdx,_hostNodeIdx, asIdx);
+    if(Settings::Regional_K && as_v[asIdx].getASCntry() == currCntry){
+        determineRegionalHost(guidIdx,glbCalHostSet,-1);
+        determineRegionalHost(guidIdx,lclCalHostSet,asIdx);
     }
-    if(Settings::Local_K){
-        determineLocalHost(guidIdx,_hostNodeIdx, asIdx);
+    if(Settings::Local_K && global_node_table[currNodeIdx].getCityIdx() == global_node_table[nodeIdx].getCityIdx()){
+        determineLocalHost(guidIdx,glbCalHostSet,-1);
+        determineLocalHost(guidIdx,lclCalHostSet,asIdx);
     }
 }
 

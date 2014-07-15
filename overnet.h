@@ -71,10 +71,15 @@ public:
         static UINT32 GNRS_K; //global k
         static UINT32 Local_K; //consists of nodes in the insertion AS 
         static UINT32 Regional_K; // consists of nodes in the same country
-        static FLOAT32 Locality_Exponent; //-alpha, -1.5 extreme local, -0.8 regional, -0.4 country, 0 global
         static bool Geo_Lat_On;
         static FLOAT32 InterLatWeight;
         static FLOAT32 IntraLatWeight;
+        static FLOAT32 StrongLocalityPerc;
+        static FLOAT32 MedLocalityPerc;
+        static bool LocMobSync; //locality and mobility synchronize 
+        static FLOAT32 LocalMobilityPerc;
+        static FLOAT32 RegionalMobilityPerc;
+        static bool BirthLocality; //query locality is associated from birth place or current place
 };
 
 struct Query_Latency{
@@ -127,6 +132,7 @@ public:
         void PrintRetryStat();
         void PrintLatencyStat();
         void PrintQueryLatencyCDF();
+        void PrintUpdateLatencyCDF();
 private:
         static Stat* _stat_ptr;
         Stat();

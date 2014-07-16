@@ -970,7 +970,7 @@ UINT32 Underlay::generateUpdateWorkload(FLOAT64 mean_arrival){
                     qLocality_exp = -0.4;
                 }
                 else {
-                    qLocality_exp = -0.4;
+                    qLocality_exp = -0;
                 }
             }
             issueQueries(currGUIDIdx,qLocality_exp);

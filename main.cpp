@@ -40,7 +40,7 @@ string Settings::outFileName;
 FLOAT64 Settings::ChurnPerNode=0.01;
 bool Settings::Geo_Lat_On = false;
 bool Settings::LocMobSync = true;
-bool Settings::BirthLocality = true;
+UINT32 Settings::QueryPerGUID = 200;
 FLOAT32 Settings::InterLatWeight = 0.0;
 FLOAT32 Settings::IntraLatWeight = 0.0;
 FLOAT32 Settings::StrongLocalityPerc = 0.6;
@@ -225,11 +225,11 @@ void ParseArg(const char * argv)
 	ss <<arg.substr(21);
 	ss >>Settings::RegionalMobilityPerc;
     }
-    else if (arg.find("birthlocality=") != string::npos)
+    else if (arg.find("queryperguid=") != string::npos)
     {
 	stringstream ss (stringstream::in | stringstream::out);
-	ss <<arg.substr(14);
-	ss >>Settings::BirthLocality;
+	ss <<arg.substr(13);
+	ss >>Settings::QueryPerGUID;
     }
 }
 
@@ -265,15 +265,6 @@ int main(int argc, const char* argv[])
         cout<<"USAGE:: argv[1]: cityFileName, argv[2]:routeFileName, argv[3]:asInfoFileName"<<endl;
         abort();
     }
-    Underlay::Inst()->InitializeWorkload();
-    
-    /*
-    for (int i = 0; i < Underlay::Inst()->global_guid_list.size(); i++) {
-        cout<<"for guid "<<Underlay::Inst()->global_guid_list[i].getGUID() <<" "
-                <<Underlay::Inst()->global_guid_list[i].getvphostIdx()<<" "<<
-                Underlay::Inst()->global_node_table[Underlay::Inst()->global_guid_list[i].getvphostIdx()].getHashID()<<endl;
-    }
-    */
     cout<<"total # nodes "<<Underlay::Inst()->global_node_table.size()<<endl;
     //Settings::DHTHop = log10((FLOAT64)Underlay::Inst()->global_node_table.size());
     cout<<"Settings::"<<endl;
@@ -298,6 +289,7 @@ int main(int argc, const char* argv[])
     cout<<"Settings::StrongLocalityPerc="<<Settings::StrongLocalityPerc<<endl;
     cout<<"Settings::LocalMobilityPerc="<<Settings::LocalMobilityPerc<<endl;
     cout<<"Settings::RegionalMobilityPerc="<<Settings::RegionalMobilityPerc<<endl;
+    cout<<"Settings::QueryPerGUID="<<Settings::Settings::QueryPerGUID<<endl;
     if (Settings::Geo_Lat_On) {
         cout<<"Settings::Geo_Lat_On = true"<<endl;
     } else {
@@ -308,11 +300,17 @@ int main(int argc, const char* argv[])
     } else {
         cout<<"Settings::LocMobSync = false"<<endl;
     }
-    if (Settings::BirthLocality) {
-        cout<<"Settings::BirthLocality = true"<<endl;
-    } else {
-        cout<<"Settings::BirthLocality = false"<<endl;
+    
+    Underlay::Inst()->InitializeWorkload();
+    
+    /*
+    for (int i = 0; i < Underlay::Inst()->global_guid_list.size(); i++) {
+        cout<<"for guid "<<Underlay::Inst()->global_guid_list[i].getGUID() <<" "
+                <<Underlay::Inst()->global_guid_list[i].getvphostIdx()<<" "<<
+                Underlay::Inst()->global_node_table[Underlay::Inst()->global_guid_list[i].getvphostIdx()].getHashID()<<endl;
     }
+    */
+    
     for (UINT32 i = 0; i < Underlay::Inst()->GetNumOfNode(); i++) {
         Stat::Migration_per_node.push_back(0);
         Stat::Ping_per_node.push_back(0);

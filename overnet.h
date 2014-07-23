@@ -79,7 +79,7 @@ public:
         static bool LocMobSync; //locality and mobility synchronize 
         static FLOAT32 LocalMobilityPerc;
         static FLOAT32 RegionalMobilityPerc;
-        static bool BirthLocality; //query locality is associated from birth place or current place
+        static UINT32  QueryPerGUID;
 };
 
 struct Query_Latency{

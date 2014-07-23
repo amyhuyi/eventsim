@@ -40,19 +40,24 @@ public:
 class GUID
 {
 private:
-        UINT32 _birth_nodeIdx;
-	UINT32 _vphostIdx;  //index of the virtual primary host into global node table
-	FLOAT64 _last_update_time;
-        UINT32 _address_nodeIdx;      // current Node (PoP) Idx the GUID is attached to, which is the node inserted this GUID
-public:
         UINT32 _guid;   //unique for each GUID, a hash value in GNRS space
-        GUID (UINT32 id, UINT32 nodeIdx, FLOAT64 time); // compute objID from GUID and GNRS space range
+	UINT32 _vphostIdx;  //index of the virtual primary host into global node table
+	//FLOAT64 _last_update_time;
+        //UINT32 _address_nodeIdx;      // current Node (PoP) Idx the GUID is attached to
+        char _mobility_degree;//'L' ||  'R'||  'G'
+         
+public:
+        vector<UINT32> _address_q; //queue of the Node (PoP) Idx this GUID traverses among
+        vector<FLOAT64> _updateTime_q;
+        GUID (UINT32 id, UINT32 nodeIdx, FLOAT64 time, char mobilityDegree); // compute objID from GUID and GNRS space range
 	~GUID();
 	UINT32 getGUID();
+        char getMobility();
+        void setMobility(char newMobilityDegree);
         UINT32 getvphostIdx();
         FLOAT64 getLastUpdateTime ();
-        UINT32 getAddrNodeIdx();
-        UINT32 getBirthNodeIDx();
+        UINT32 getCurrAddrNodeIdx();
+        UINT32 getNextAddrNodeIdx();
         UINT32 getAddrASIdx();
         void updateAddrNodeIdx(UINT32 newNodeIdx, FLOAT64 time);
 };
@@ -141,8 +146,9 @@ private:
     void determineGlobalHost(UINT32 guidIdx, set<UINT32>& _hostNodeIdx, int asIdx);
     UINT32 getCityIdx(string cityName);
     void getQueryNodes(UINT32 guidIdx, vector<UINT32>& _queryNodes, FLOAT32 exponent);
-    UINT32 getUpdateNode(UINT32 guidIdx, char MobilityDegree);
+    void getQueryNodesPerLoc(FLOAT32 lat1,FLOAT32 lon1, UINT32 totalNo, vector<UINT32>& _queryNodes, FLOAT32 exponent);
     UINT32 issueQueries (UINT32 guidIdx, FLOAT32 exponent);
+    void initializeMobility(UINT32 guidIdx);//assign address queue for a GUID
 public:
     UINT32 getvpHostIdx(UINT32 guid, UINT32 start_idx, UINT32 end_idx);
     vector<Node> global_node_table; //sorted based on node ID

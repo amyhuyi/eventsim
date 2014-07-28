@@ -326,7 +326,7 @@ int main(int argc, const char* argv[])
     while ( EventScheduler::Inst()->GetCurrentTime() <= Settings::EndTime){
 	Event * pevent = EventScheduler::Inst()->CurrentEvent();
 	//cout <<"queued jobs: " <<EventScheduler::Inst()->GetSize() <<" info: ";
-	pevent->PrintInfo();
+	//pevent->PrintInfo();
 	if (pevent->Callback()){
             delete pevent;
 	}

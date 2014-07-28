@@ -222,6 +222,14 @@ void Stat::PrintUpdateLatencyCDF(){
         }
     }
     sort(total_delay_v.begin(), total_delay_v.end());
+    //debug
+    for (int i = 1; i < total_delay_v.size(); i++) {
+        cout<<(total_delay_v[i])<<endl;
+        if (total_delay_v[i]<total_delay_v[i-1]) {
+            cout<<"Error in Sorting total_delay_v"<<endl;
+        }
+    }
+
     FLOAT32 pcent = 0.0;
     FLOAT32 idx;
     int total_results = total_delay_v.size();

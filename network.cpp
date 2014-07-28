@@ -1111,7 +1111,7 @@ UINT32 Underlay::generateUpdateWorkload(FLOAT64 mean_arrival){
                 }
             }
             cout<<"Generate an update with mobility "<<global_guid_list[currGUIDIdx].getMobility()<<" query exp "<<qLocality_exp<<endl;
-            //issueQueries(currGUIDIdx,qLocality_exp);
+            issueQueries(currGUIDIdx,qLocality_exp);
             i++;
         }
     }

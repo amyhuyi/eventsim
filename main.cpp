@@ -3,10 +3,7 @@
 #include "event_scheduler.h"
 #include "network.h"
 #include "util.h"
-#include <iostream>
-#include <string>
-#include <sstream>
-#include <cmath>
+
 
 //default setting
 vector<UINT32> Stat::Ping_per_node;
@@ -239,24 +236,6 @@ int main(int argc, const char* argv[])
     cout <<"Initializing the network ..." <<endl;
     //argv[1]: cityFileName, argv[2]:routeFileName, argv[3]:asInfoFileName
     Underlay::CreateInst(argv[1], argv[2], argv[3]);
-    /*
-    for (int i = 0; i < Underlay::Inst()->as_v.size(); i++) {
-        cout<<"as Num = "<<Underlay::Inst()->as_v[i].getASNum()<<" tier = "<<Underlay::Inst()->as_v[i].getTier()
-                << "capacity = "<< Underlay::Inst()->as_v[i].getCapacity()<<" index= "<<Underlay::Inst()->as_v[i].getASIndex()
-                <<endl;
-        //for (int j = 0; j < Underlay::Inst()->as_v.size(); j++) {
-            //cout<<"latency "<<i<<" to "<<j<<" = "<<Underlay::Inst()->getLatency(i,j)<<endl;
-        //}
-    }
-    */
-    /*
-    for (int i = 0; i < Underlay::Inst()->global_node_table.size(); i++) {
-        cout<<"for node "<<Underlay::Inst()->global_node_table[i].getHashID() <<" "
-                <<Underlay::Inst()->global_node_table[i].getNodeIdx() <<" "
-                <<Underlay::Inst()->global_node_table[i].getASIdx()<<" "
-                <<Underlay::Inst()->as_v[Underlay::Inst()->global_node_table[i].getASIdx()].getASCntry()<<endl;
-    }
-    */
     if(argc>4){
         for (int i = 4; i < argc; i++) {
             ParseArg(argv[i]);
@@ -302,15 +281,6 @@ int main(int argc, const char* argv[])
     }
     
     Underlay::Inst()->InitializeWorkload();
-    
-    /*
-    for (int i = 0; i < Underlay::Inst()->global_guid_list.size(); i++) {
-        cout<<"for guid "<<Underlay::Inst()->global_guid_list[i].getGUID() <<" "
-                <<Underlay::Inst()->global_guid_list[i].getvphostIdx()<<" "<<
-                Underlay::Inst()->global_node_table[Underlay::Inst()->global_guid_list[i].getvphostIdx()].getHashID()<<endl;
-    }
-    */
-    
     for (UINT32 i = 0; i < Underlay::Inst()->GetNumOfNode(); i++) {
         Stat::Migration_per_node.push_back(0);
         Stat::Ping_per_node.push_back(0);
@@ -342,6 +312,7 @@ int main(int argc, const char* argv[])
     }
     //Stat::Inst()->PrintRetryStat();
     //Stat::Inst()->PrintLatencyStat();
-    Stat::Inst()->PrintQueryLatencyCDF();
-    Stat::Inst()->PrintUpdateLatencyCDF();
+    //Stat::Inst()->PrintQueryLatencyCDF();
+    //Stat::Inst()->PrintUpdateLatencyCDF();
+    Util::Inst()->matchPareto("/Users/yihu/Downloads/genPareto", 1, 0.78);
 }

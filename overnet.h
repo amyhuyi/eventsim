@@ -12,7 +12,11 @@
 #include <map>
 #include <sstream>
 #include <assert.h>
-
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <cmath>
+#include <fstream>
 using namespace std;
 
 typedef int INT32;
@@ -29,6 +33,7 @@ typedef unsigned int ADDRINT;
 #define pi 3.14159265358979323846
 #define SHAPE_GAMMA 0.1 //ToDo:check
 #define SCALE_GAMMA (50 / SHAPE_GAMMA) //ToDo:check
+#define SHAPE_PARETO 1.06
 #define ARRIVAL_MEAN 4 //4 requests arrivals per ms
 #define DIFF(a,b) ((a)>(b)?(a)-(b):(b)-(a))
 

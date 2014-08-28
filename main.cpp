@@ -236,7 +236,7 @@ int main(int argc, const char* argv[])
     cout <<"Initializing the network ..." <<endl;
     //argv[1]: cityFileName, argv[2]:routeFileName, argv[3]:asInfoFileName
     Underlay::CreateInst(argv[1], argv[2], argv[3]);
-    if(argc>4){
+    if(argc>=4){
         for (int i = 4; i < argc; i++) {
             ParseArg(argv[i]);
         }
@@ -314,5 +314,9 @@ int main(int argc, const char* argv[])
     //Stat::Inst()->PrintLatencyStat();
     //Stat::Inst()->PrintQueryLatencyCDF();
     //Stat::Inst()->PrintUpdateLatencyCDF();
-    Util::Inst()->matchPareto("/Users/yihu/Downloads/genPareto", 1, 0.78);
+    //Util::Inst()->matchPareto("/Users/yihu/Downloads/genPareto", 1, 0.78);
+    vector<UINT32> results_v;
+    Util::Inst()->getParetoVec(2.04,1000,results_v);
+    Util::Inst()->genCDF("./WkldBlc/zipf/3.04_10k_cdf.csv", results_v);
+    Util::Inst()->genPDF("./WkldBlc/zipf/3.04_10k_pdf.csv", results_v);
 }

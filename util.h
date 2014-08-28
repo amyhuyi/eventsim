@@ -24,4 +24,10 @@ public:
     FLOAT64 GenPareto();
     void ResetPareto(FLOAT64 thisShape);
     void matchPareto(const char* outfilename, FLOAT64 scale, FLOAT64 thisShape);
+    UINT32 genPareto(FLOAT64 thisShape, FLOAT64 maxValue); // return mean
+    UINT32 calHashIDCapacity();
+    UINT32 calParetoMean();
+    void genCDF(const char* outfilename, vector<UINT32>& results_v);
+    void genPDF(const char* outfilename, vector<UINT32>& results_v);
+    void getParetoVec(FLOAT64 thisShape, long int totalNo, vector<UINT32>& results_v);
 };

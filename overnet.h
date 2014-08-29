@@ -18,7 +18,7 @@
 #include <cmath>
 #include <fstream>
 #include <iomanip>
-
+#include <algorithm>
 using namespace std;
 
 typedef int INT32;

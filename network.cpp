@@ -1364,7 +1364,6 @@ void Underlay::calStorageWorkload(){
     sort(Stat::Storage_per_node.begin(),Stat::Storage_per_node.end());
     
     Util::Inst()->genCDF("./WkldBlc/storage_onlyglobal_cdf.csv",Stat::Storage_per_node);
-    //Util::Inst()->genPDF("./WkldBlc/storage_onlyglobal_pdf.csv",Stat::Storage_per_node);
     //debug
     cout<<"storage per node \n";
     UINT32 unitStrWrkld = Stat::Storage_per_node[0];

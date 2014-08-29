@@ -1388,9 +1388,14 @@ void Underlay::calStorageWorkload(){
     ss.str("");
     //debug
     cout<<"storage per node \n";
-    UINT32 unitStrWrkld = Stat::Storage_per_node[0];
+    UINT32 unitStrWrkld = 1;
+    bool setUnit= false;
     for (int i = 0; i < Stat::Storage_per_node.size(); i++) {
         cout<<Stat::Storage_per_node[i]<<endl;
+        if (!setUnit && Stat::Storage_per_node[i] !=0) {
+            unitStrWrkld = Stat::Storage_per_node[i];
+            setUnit = true;
+        }
         Stat::Storage_per_node[i] = Stat::Storage_per_node[i]/unitStrWrkld;
     }
     strgOutName +="_norm";

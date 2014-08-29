@@ -1367,9 +1367,10 @@ void Underlay::calStorageWorkload(){
     //Util::Inst()->genPDF("./WkldBlc/storage_onlyglobal_pdf.csv",Stat::Storage_per_node);
     //debug
     cout<<"storage per node \n";
+    UINT32 unitStrWrkld = Stat::Storage_per_node[0];
     for (int i = 0; i < Stat::Storage_per_node.size(); i++) {
         cout<<Stat::Storage_per_node[i]<<endl;
-        Stat::Storage_per_node[i] = Stat::Storage_per_node[i]/Stat::Storage_per_node[0];
+        Stat::Storage_per_node[i] = Stat::Storage_per_node[i]/unitStrWrkld;
     }
     Util::Inst()->genCDF("./WkldBlc/storage_onlyglobal_norm_cdf.csv",Stat::Storage_per_node);
     //Util::Inst()->genPDF("./WkldBlc/storage_onlyglobal_norm_pdf.csv",Stat::Storage_per_node);

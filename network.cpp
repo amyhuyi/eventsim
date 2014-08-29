@@ -1355,15 +1355,37 @@ void Underlay::calStorageWorkload(){
     set<UINT32> glbCalHostSet;
     for (UINT64 guidIdx = 0; guidIdx < global_guid_list.size(); guidIdx++) {
         glbCalHostSet.clear();
-        determineGlobalHost(guidIdx,glbCalHostSet,-1);
-        determineRegionalHost(guidIdx,glbCalHostSet,-1);
-        determineLocalHost(guidIdx,glbCalHostSet,-1);
+        if(Settings::GNRS_K){
+            determineGlobalHost(guidIdx,glbCalHostSet,-1);
+        }
+        if(Settings::Regional_K){
+            determineRegionalHost(guidIdx,glbCalHostSet,-1);
+        }
+        if(Settings::Local_K){
+            determineLocalHost(guidIdx,glbCalHostSet,-1);
+        }
         for (set<UINT32>::iterator it=glbCalHostSet.begin(); it!=glbCalHostSet.end(); ++it)
             Stat::Storage_per_node[*it]++;
     }
     sort(Stat::Storage_per_node.begin(),Stat::Storage_per_node.end());
-    
-    Util::Inst()->genCDF("./WkldBlc/storage_onlyglobal_cdf.csv",Stat::Storage_per_node);
+    string strgOutName = Settings::outFileName;
+    strgOutName += "_";
+    stringstream ss (stringstream::in | stringstream::out);
+    ss<<(Settings::ActiveGUIDperPoP*global_node_table.size());
+    strgOutName += ss.str();
+    strgOutName += "_";
+    ss.str("");
+    ss<<Settings::GNRS_K;
+    strgOutName += ss.str();
+    strgOutName += "_";
+    ss.str("");
+    ss <<Settings::Regional_K;
+    strgOutName += ss.str();
+    strgOutName += "_";
+    ss.str("");
+    ss <<Settings::Local_K;
+    strgOutName += ss.str();
+    ss.str("");
     //debug
     cout<<"storage per node \n";
     UINT32 unitStrWrkld = Stat::Storage_per_node[0];
@@ -1371,8 +1393,8 @@ void Underlay::calStorageWorkload(){
         cout<<Stat::Storage_per_node[i]<<endl;
         Stat::Storage_per_node[i] = Stat::Storage_per_node[i]/unitStrWrkld;
     }
-    Util::Inst()->genCDF("./WkldBlc/storage_onlyglobal_norm_cdf.csv",Stat::Storage_per_node);
-    //Util::Inst()->genPDF("./WkldBlc/storage_onlyglobal_norm_pdf.csv",Stat::Storage_per_node);
+    strgOutName +="_norm";
+    Util::Inst()->genCDF(strgOutName.c_str(),Stat::Storage_per_node);
 }
 
 void Underlay::SynchNetwork(){

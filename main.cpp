@@ -82,7 +82,7 @@ void ParseArg(const char * argv)
     if (arg.find("gnrs_k=") != string::npos)
     {
 	stringstream ss (stringstream::in | stringstream::out);
-	ss <<arg.substr(8);
+	ss <<arg.substr(7);
 	ss >>Settings::GNRS_K;
     }
     else if (arg.find("local_k=") != string::npos)

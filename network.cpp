@@ -1410,6 +1410,7 @@ void Underlay::SynchNetwork(){
 /* binary search the nearest hashID of the guid, return its index in the global node table
  */
 UINT32 Underlay::getvpHostIdx(UINT32 guid, UINT32 start_idx, UINT32 end_idx){
+    
     if(global_node_table[0].getHashID() > guid){
        return start_idx;
     }

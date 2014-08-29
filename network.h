@@ -45,11 +45,12 @@ private:
 	//FLOAT64 _last_update_time;
         //UINT32 _address_nodeIdx;      // current Node (PoP) Idx the GUID is attached to
         char _mobility_degree;//'L' ||  'R'||  'G'
-         
+        UINT64 _popularity; //query no. following zipf
 public:
         vector<UINT32> _address_q; //queue of the Node (PoP) Idx this GUID traverses among
         vector<FLOAT64> _updateTime_q;
-        GUID (UINT32 id, UINT32 nodeIdx, FLOAT64 time, char mobilityDegree); // compute objID from GUID and GNRS space range
+        
+        GUID (UINT32 id, UINT32 nodeIdx, FLOAT64 time, char mobilityDegree, UINT64 popularity); // compute objID from GUID and GNRS space range
 	~GUID();
 	UINT32 getGUID();
         char getMobility();
@@ -59,6 +60,7 @@ public:
         UINT32 getCurrAddrNodeIdx();
         UINT32 getNextAddrNodeIdx();
         UINT32 getAddrASIdx();
+        UINT64 getPopularity();
         void updateAddrNodeIdx(UINT32 newNodeIdx, FLOAT64 time);
 };
 
@@ -148,7 +150,7 @@ private:
     void getQueryNodes(UINT32 guidIdx, vector<UINT32>& _queryNodes, FLOAT32 exponent);
     void getQueryNodesPerLoc(FLOAT32 lat1,FLOAT32 lon1, UINT32 totalNo, vector<UINT32>& _queryNodes, FLOAT32 exponent);
     UINT32 issueQueries (UINT32 guidIdx, FLOAT32 exponent);
-    void initializeMobility(UINT32 guidIdx);//assign address queue for a GUID
+    void initializeMobility(UINT32 guidIdx);//assign address queue for a GUID among gw cities or all deployed cities
 public:
     UINT32 getvpHostIdx(UINT32 guid, UINT32 start_idx, UINT32 end_idx);
     vector<Node> global_node_table; //sorted based on node ID
@@ -156,6 +158,8 @@ public:
     vector<GUID> global_guid_list;
     vector<CITY> city_list;
     vector<UINT32> gw_cities;
+    vector<UINT32> deployed_cities;
+    vector<UINT32> workload_cities;
     static Underlay* Inst();
     static void CreateInst(const char* cityFile,const char* routeFile, const char* asFile);
     UINT32 numericDistance(UINT32 hashID1, UINT32 hashID2);
@@ -166,7 +170,7 @@ public:
     void ReadInASInfo(const char* asFile);//as index, tier, capacity
     void ReadInCityInfo(const char* cityFile);
     void InitializeNetwork(); //assign nodes to each AS based on capacity
-    void InitializeWorkload();//create GUID insertion workload
+    void InitializeWorkload();//create GUID insertion workload (among gw city or all deployed cities)
     UINT32 generateQueryWorkload(FLOAT64 mean_arrival);
     UINT32 generateUpdateWorkload(FLOAT64 mean_arrival);
     UINT32 generateLeaveChurn(UINT32 churnLength, FLOAT64 mean_arrival, FLOAT64 sessionTime, UINT32 onOffTimes);
@@ -178,6 +182,7 @@ public:
     void determineHost(UINT32 guidIdx, set<UINT32>& glbCalHostSet, set<UINT32>& lclCalHostSet, int nodeIdx);
     UINT32 getIdxRetryCnt(FLOAT64 currTime, bool isDHTretry);
     UINT32 getIdxQueryLatency(FLOAT64 currTime, bool isInsertion);
+    void calStorageWorkload();
 };
 
 #endif

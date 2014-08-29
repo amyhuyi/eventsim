@@ -59,8 +59,9 @@ bool CITY::isGW(){
     return (_ixp_weight>0);
 }
 
-GUID::GUID (UINT32 id, UINT32 nodeIdx, FLOAT64 time, char mobilityDegree){
+GUID::GUID (UINT32 id, UINT32 nodeIdx, FLOAT64 time, char mobilityDegree, UINT64 popularity){
     _guid = id;
+    _popularity = popularity;
     //_address_nodeIdx = nodeIdx;
     _vphostIdx = Underlay::Inst()->getvpHostIdx(_guid,0,Underlay::Inst()->global_node_table.size()-1);
     //_last_update_time = time;
@@ -74,6 +75,9 @@ GUID::~GUID(){
     
 }
 
+UINT64 GUID::getPopularity(){
+    return _popularity;
+}
 UINT32 GUID::getGUID(){
     return _guid;
 }
@@ -731,11 +735,27 @@ void Underlay::InitializeNetwork(){
         city_list[global_node_table[i].getCityIdx()]._nodeIdx_v.push_back(i);
     }
     gw_cities.clear();
+    deployed_cities.clear();
+    vector<UINT32> pop_per_gw, pop_per_city;
     for (int i = 0; i < city_list.size(); i++) {
-        if (city_list[i].isGW() && city_list[i]._nodeIdx_v.size()) {
-            gw_cities.push_back(i);
+        if (city_list[i]._nodeIdx_v.size()) {
+            deployed_cities.push_back(i);
+            pop_per_city.push_back(city_list[i]._nodeIdx_v.size());
+            if (city_list[i].isGW()) {
+                gw_cities.push_back(i);
+                pop_per_gw.push_back(city_list[i]._nodeIdx_v.size());
+            }
         }
     }
+    
+    if (Settings::DeployOnlyGW) {
+        workload_cities = gw_cities;
+    } else {
+        workload_cities = deployed_cities;
+    }
+    cout<<"gw cities "<<gw_cities.size()<<",deployed cities "<<deployed_cities.size()<<", workload cities"<<workload_cities.size()<<endl;
+    //Util::Inst()->genCDF("./WkldBlc/pop_per_gw_cdf.csv", pop_per_gw);
+    //Util::Inst()->genCDF("./WkldBlc/pop_per_city_cdf.csv", pop_per_city);
 }
 /* insert activeGUIDno. of guid
  * select PoPs in gw cities for GUID insertion
@@ -744,36 +764,53 @@ void Underlay::InitializeWorkload(){
     UINT32 currNodeIdx;
     set<UINT32> assignedGUID;
     UINT32 currGUID;
-    UINT32 currCityIdx;
+    UINT32 currCityIdx=0;
     char mobilityDegree;
-    assert(gw_cities.size());
-    for(UINT32 i=0; i<Settings::TotalActiveGUID; i++){
-        //currNodeIdx= Util::Inst()->GenInt(_num_of_node);        
-        currCityIdx = Util::Inst()->GenInt(gw_cities.size());
-        assert(city_list[gw_cities[currCityIdx]]._nodeIdx_v.size());
-        currNodeIdx = city_list[gw_cities[currCityIdx]]._nodeIdx_v[0];
+    assert(workload_cities.size());
+    vector<UINT32> workload_cities_guidquota;
+    UINT64 totalActiveGUIDs=0, randNum;
+    for (int i = 0; i < workload_cities.size(); i++) {
+        workload_cities_guidquota.push_back(city_list[workload_cities[i]]._nodeIdx_v.size()*Settings::ActiveGUIDperPoP);
+        totalActiveGUIDs += city_list[workload_cities[i]]._nodeIdx_v.size()*Settings::ActiveGUIDperPoP;
+    }
+    assert(workload_cities_guidquota.size() == workload_cities.size());
+    //debug
+    cout<<"total hashIDs"<<_num_of_node<<" total active guids"<<totalActiveGUIDs<<endl;
+    
+    Util::Inst()->ResetPareto(1.04);
+    for(UINT64 i=0; i<totalActiveGUIDs; i++){
+        if (workload_cities_guidquota[currCityIdx]==0) {
+            currCityIdx ++;
+        }
+        assert(currCityIdx<workload_cities.size());
+        //currCityIdx = Util::Inst()->GenInt(gw_cities.size());
+        //assert(city_list[gw_cities[currCityIdx]]._nodeIdx_v.size());
+        currNodeIdx = city_list[workload_cities[currCityIdx]]._nodeIdx_v[0];
         currGUID = Util::Inst()->GenInt(GNRS_HASH_RANGE);
         while (assignedGUID.find(currGUID) != assignedGUID.end()) {
             currGUID = Util::Inst()->GenInt(GNRS_HASH_RANGE);
         }
-        if (i <= Settings::TotalActiveGUID * Settings::LocalMobilityPerc) {
+        randNum = Util::Inst()->GenInt(totalActiveGUIDs);
+        if (randNum <= totalActiveGUIDs * Settings::LocalMobilityPerc) {
             mobilityDegree = 'L';
         } 
-        else if(i <= Settings::TotalActiveGUID * (Settings::LocalMobilityPerc+Settings::RegionalMobilityPerc)){
+        else if(randNum <= totalActiveGUIDs * (Settings::LocalMobilityPerc+Settings::RegionalMobilityPerc)){
             mobilityDegree = 'R';
         }
         else {
             mobilityDegree = 'G';
         }
 
-        GUID aGuid(currGUID,currNodeIdx,EventScheduler::Inst()->GetCurrentTime(),mobilityDegree);
+        GUID aGuid(currGUID,currNodeIdx,EventScheduler::Inst()->GetCurrentTime(),
+                mobilityDegree,Util::Inst()->GenPareto());
         global_guid_list.push_back(aGuid);
         assignedGUID.insert(currGUID);
+        workload_cities_guidquota[currCityIdx]--;
     }
-    for (int i = 0; i < global_guid_list.size(); i++) {
+    
+    for (UINT64 i = 0; i < global_guid_list.size(); i++) {
         initializeMobility(i);
     }
-
 }
 
 void Underlay::initializeMobility(UINT32 guidIdx){
@@ -816,16 +853,16 @@ void Underlay::initializeMobility(UINT32 guidIdx){
     }
     else if (MobilityDegree == 'R'){
         string currCountry = city_list[currCityIdx].getCountry();
-        for (int i = 0; i < gw_cities.size(); i++) {
-            if (city_list[gw_cities[i]].getCountry() == currCountry && city_list[gw_cities[i]]._nodeIdx_v.size()) {
-                candidate_v.push_back(gw_cities[i]);
+        for (int i = 0; i < workload_cities.size(); i++) {
+            if (city_list[workload_cities[i]].getCountry() == currCountry && city_list[workload_cities[i]]._nodeIdx_v.size()) {
+                candidate_v.push_back(workload_cities[i]);
             }
         }
     }
     else {
-        for (int i = 0; i < gw_cities.size(); i++) {
-            if (city_list[gw_cities[i]]._nodeIdx_v.size()) {
-                candidate_v.push_back(gw_cities[i]);
+        for (int i = 0; i < workload_cities.size(); i++) {
+            if (city_list[workload_cities[i]]._nodeIdx_v.size()) {
+                candidate_v.push_back(workload_cities[i]);
             }
         }
     }
@@ -853,9 +890,9 @@ void Underlay::initializeMobility(UINT32 guidIdx){
         global_guid_list[guidIdx]._updateTime_q.push_back(-1);
     }
     assert(global_guid_list[guidIdx]._address_q.size() == global_guid_list[guidIdx]._updateTime_q.size());
-    //debug
+    //debug 
     /*
-    cout<<" GUID address queue "<<global_guid_list[guidIdx]._address_q.size()<<" : ";
+    cout<<"mobility degree "<<MobilityDegree<<" GUID address queue "<<global_guid_list[guidIdx]._address_q.size()<<" : ";
     for (int i = 0; i < global_guid_list[guidIdx]._address_q.size(); i++) {
         currNodeIdx = global_guid_list[guidIdx]._address_q[i];
         assert(currNodeIdx>=0 && currNodeIdx<global_node_table.size());
@@ -877,6 +914,7 @@ UINT32 Underlay::numericDistance(UINT32 hashID1, UINT32 hashID2){
  * default neighbor size is the minimal neighbor size K+1
  * larger neighbor size is set through Settings:NeighborSize
  */
+//ToDo: correct this function, not neighbors anymore
 void Underlay::getNeighbors(UINT32 nodeIdx, set<UINT32> & neighborsIdx_v){
     UINT32 currNodeIdx = nodeIdx;
     neighborsIdx_v.clear();
@@ -920,9 +958,9 @@ void Underlay::getQueryNodesPerLoc(FLOAT32 lat1, FLOAT32 lon1, UINT32 totalNo, v
     FLOAT32 totalWeight=0;
     FLOAT32 lat2, lon2;
     FLOAT32 currDistance;
-    for (int i = 0; i < gw_cities.size(); i++) {
-        lat2 = city_list[gw_cities[i]].getLat();
-        lon2 = city_list[gw_cities[i]].getLon();
+    for (int i = 0; i < workload_cities.size(); i++) {
+        lat2 = city_list[workload_cities[i]].getLat();
+        lon2 = city_list[workload_cities[i]].getLon();
         currDistance = distance(lat1, lon1, lat2, lon2, 'M');
         if (currDistance ==0) {
             currDistance = 0.1;
@@ -931,9 +969,9 @@ void Underlay::getQueryNodesPerLoc(FLOAT32 lat1, FLOAT32 lon1, UINT32 totalNo, v
     }
     FLOAT32 guidPerWeight = (FLOAT32)(totalNo)/totalWeight;
     UINT32 quota;
-    for (int i = 0; i < gw_cities.size(); i++) {
-        lat2 = city_list[gw_cities[i]].getLat();
-        lon2 = city_list[gw_cities[i]].getLon();
+    for (int i = 0; i < workload_cities.size(); i++) {
+        lat2 = city_list[workload_cities[i]].getLat();
+        lon2 = city_list[workload_cities[i]].getLon();
         currDistance = distance(lat1, lon1, lat2, lon2, 'M');
         if (currDistance ==0) {
             currDistance = 0.1;
@@ -941,7 +979,7 @@ void Underlay::getQueryNodesPerLoc(FLOAT32 lat1, FLOAT32 lon1, UINT32 totalNo, v
         if (pow(currDistance, exponent) * guidPerWeight > 0.5) {
             quota = (UINT32)pow(currDistance, exponent) * guidPerWeight +1;
             for (int j = 0; j < quota; j++) {
-                _queryNodes.push_back(city_list[gw_cities[i]]._nodeIdx_v[0]);
+                _queryNodes.push_back(city_list[workload_cities[i]]._nodeIdx_v[0]);
             }
         } 
     }
@@ -1029,52 +1067,6 @@ UINT32 Underlay::generateQueryWorkload(FLOAT64 mean_arrival){
     cout<<"suppose to generate "<<mean_arrival<<" Queries, actual generated"<<totalGenerated<<endl;
     return totalGenerated;
 }
-/*
-UINT32 Underlay::getUpdateNode(UINT32 guidIdx, char MobilityDegree){
-    assert(MobilityDegree == 'L' || MobilityDegree == 'R'|| MobilityDegree == 'G');
-    UINT32 currNodeIdx = global_guid_list[guidIdx].getCurrAddrNodeIdx();
-    UINT32 currCityIdx = global_node_table[currNodeIdx].getCityIdx();
-    UINT32 updatedNodeIdx = currNodeIdx;
-    UINT32 updatedCityIdx;
-    vector<UINT32> candidate_v;
-    if (MobilityDegree == 'L') {
-        if (city_list[currCityIdx]._nodeIdx_v.size()>1) {
-            candidate_v = city_list[currCityIdx]._nodeIdx_v;
-            for (int i = 0; i < candidate_v.size(); i++) {
-                if (candidate_v[i] == currNodeIdx) {
-                    candidate_v.erase(candidate_v.begin()+i);
-                    break;
-                }
-            }
-            updatedNodeIdx = candidate_v[Util::Inst()->GenInt(candidate_v.size())];           
-        } 
-    }
-    else if (MobilityDegree == 'R'){
-        string currCountry = city_list[currCityIdx].getCountry();
-        for (int i = 0; i < gw_cities.size(); i++) {
-            if (city_list[gw_cities[i]].getCountry() == currCountry) {
-                candidate_v.push_back(gw_cities[i]);
-            }
-        }
-        if (candidate_v.size()) {
-            updatedCityIdx = candidate_v[Util::Inst()->GenInt(candidate_v.size())];
-            UINT32 randIdx = Util::Inst()->GenInt(city_list[updatedCityIdx]._nodeIdx_v.size());
-            updatedNodeIdx = city_list[updatedCityIdx]._nodeIdx_v[randIdx];
-        }    
-    }
-    else {
-        updatedCityIdx = gw_cities[Util::Inst()->GenInt(gw_cities.size())];
-        UINT32 randIdx = Util::Inst()->GenInt(city_list[updatedCityIdx]._nodeIdx_v.size());
-        updatedNodeIdx = city_list[updatedCityIdx]._nodeIdx_v[randIdx];
-    }
-    assert(updatedNodeIdx>=0 && updatedNodeIdx<global_node_table.size());
-    //debug
-    cout<<"currNodeIdx: "<<currNodeIdx<<city_list[currCityIdx].getCity()<<" , "<<city_list[currCityIdx].getCountry()<<" MobilityDegree:"<<MobilityDegree
-            <<"updatedNodeIDx" <<updatedNodeIdx<<city_list[global_node_table[updatedNodeIdx].getCityIdx()].getCity()<<","
-            <<city_list[global_node_table[updatedNodeIdx].getCityIdx()].getCountry()<<endl;
-    return updatedNodeIdx;
-}
-*/
 /*
  generate update workload: mobility local, regional, global
  * and associated query workload
@@ -1353,6 +1345,34 @@ void Underlay::determineHost(UINT32 guidIdx, set<UINT32>& glbCalHostSet, set<UIN
         determineLocalHost(guidIdx,glbCalHostSet,-1);
         determineLocalHost(guidIdx,lclCalHostSet,asIdx);
     }
+}
+
+void Underlay::calStorageWorkload(){
+    assert(Stat::Storage_per_node.size() == global_node_table.size());
+    for (int i = 0; i < Stat::Storage_per_node.size(); i++) {
+        Stat::Storage_per_node[i]=0;
+    }
+    set<UINT32> glbCalHostSet;
+    for (UINT64 guidIdx = 0; guidIdx < global_guid_list.size(); guidIdx++) {
+        glbCalHostSet.clear();
+        determineGlobalHost(guidIdx,glbCalHostSet,-1);
+        determineRegionalHost(guidIdx,glbCalHostSet,-1);
+        determineLocalHost(guidIdx,glbCalHostSet,-1);
+        for (set<UINT32>::iterator it=glbCalHostSet.begin(); it!=glbCalHostSet.end(); ++it)
+            Stat::Storage_per_node[*it]++;
+    }
+    sort(Stat::Storage_per_node.begin(),Stat::Storage_per_node.end());
+    
+    Util::Inst()->genCDF("./WkldBlc/storage_onlyglobal_cdf.csv",Stat::Storage_per_node);
+    //Util::Inst()->genPDF("./WkldBlc/storage_onlyglobal_pdf.csv",Stat::Storage_per_node);
+    //debug
+    cout<<"storage per node \n";
+    for (int i = 0; i < Stat::Storage_per_node.size(); i++) {
+        cout<<Stat::Storage_per_node[i]<<endl;
+        Stat::Storage_per_node[i] = Stat::Storage_per_node[i]/Stat::Storage_per_node[0];
+    }
+    Util::Inst()->genCDF("./WkldBlc/storage_onlyglobal_norm_cdf.csv",Stat::Storage_per_node);
+    //Util::Inst()->genPDF("./WkldBlc/storage_onlyglobal_norm_pdf.csv",Stat::Storage_per_node);
 }
 
 void Underlay::SynchNetwork(){

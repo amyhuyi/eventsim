@@ -20,7 +20,7 @@ UINT32 Stat::Premature_leaves=0;
 FLOAT64 Settings::EndTime = 50;
 FLOAT64 Settings::TestThreshold = 0.1;
 UINT32 Settings::TotalVirtualGUID = 1000000000;
-UINT32 Settings::TotalActiveGUID = 10000;	// 
+UINT32 Settings::ActiveGUIDperPoP = 10;	// 
 UINT32 Settings::NeighborSize =0; //full range neighbor size if undefined in command line, use default 2*ceil(K/2)
 UINT32 Settings::DHTHop = 5;//estimated hops for a DHT path
 UINT32 Settings::GNRS_K =5;
@@ -44,6 +44,7 @@ FLOAT32 Settings::StrongLocalityPerc = 0.6;
 FLOAT32 Settings::MedLocalityPerc = 0.4;
 FLOAT32 Settings::LocalMobilityPerc = 0.6;
 FLOAT32 Settings::RegionalMobilityPerc =0.2;
+bool Settings::DeployOnlyGW = 0;
 /*!
  *  @brief Computes floor(log2(n))
  *  Works by finding position of MSB set.
@@ -150,11 +151,11 @@ void ParseArg(const char * argv)
 	ss <<arg.substr(14);
 	ss >>Settings::UpdatePerNode;
     }
-    else if (arg.find("totalactiveguid=") != string::npos)
+    else if (arg.find("activeguidperpop=") != string::npos)
     {
 	stringstream ss (stringstream::in | stringstream::out);
-	ss <<arg.substr(16);
-	ss >>Settings::TotalActiveGUID;
+	ss <<arg.substr(17);
+	ss >>Settings::ActiveGUIDperPoP;
     }
     else if (arg.find("neighborsize=") != string::npos)
     {
@@ -228,6 +229,12 @@ void ParseArg(const char * argv)
 	ss <<arg.substr(13);
 	ss >>Settings::QueryPerGUID;
     }
+    else if (arg.find("deployongw=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(11);
+	ss >>Settings::DeployOnlyGW;
+    }
 }
 
 int main(int argc, const char* argv[])
@@ -250,7 +257,7 @@ int main(int argc, const char* argv[])
     cout<<"Settings::EndTime="<<Settings::EndTime<<endl;
     cout<<"Settings::TestThreshold="<<Settings::TestThreshold<<endl;
     cout<<"Settings::TotalVirtualGUID="<<Settings::TotalVirtualGUID<<endl;
-    cout<<"Settings::TotalActiveGUID="<<Settings::TotalActiveGUID<<endl;	// 
+    cout<<"Settings::ActiveGUIDperPoP="<<Settings::ActiveGUIDperPoP<<endl;	// 
     cout<<"Settings::NeighborSize="<<Settings::NeighborSize<<endl; //full range neighbor size if undefined in command line, use default 2*ceil(K/2)
     cout<<"Settings::DHTHop="<<Settings::DHTHop<<endl;//estimated hops for a DHT path
     cout<<"Settings::GNRS_K="<<Settings::GNRS_K<<endl;
@@ -279,15 +286,21 @@ int main(int argc, const char* argv[])
     } else {
         cout<<"Settings::LocMobSync = false"<<endl;
     }
+    if (Settings::DeployOnlyGW) {
+        cout<<"Settings::DeployOnlyGW = true"<<endl;
+    } else {
+        cout<<"Settings::DeployOnlyGW = false"<<endl;
+    }
     
     Underlay::Inst()->InitializeWorkload();
-    for (UINT32 i = 0; i < Underlay::Inst()->GetNumOfNode(); i++) {
+    for (UINT32 i = 0; i < Underlay::Inst()->global_node_table.size(); i++) {
         Stat::Migration_per_node.push_back(0);
         Stat::Ping_per_node.push_back(0);
         Stat::Storage_per_node.push_back(0);
         Stat::Workload_per_node.push_back(0);
     }
     UINT32 totalNodes = Underlay::Inst()->global_node_table.size();
+    Underlay::Inst()->calStorageWorkload();
     if(Settings::ChurnHours)
         Underlay::Inst()->generateLeaveChurn(Settings::ChurnHours, Settings::ChurnPerNode*totalNodes, 
                 Settings::OnOffSession, Settings::OnOffRounds);
@@ -315,8 +328,8 @@ int main(int argc, const char* argv[])
     //Stat::Inst()->PrintQueryLatencyCDF();
     //Stat::Inst()->PrintUpdateLatencyCDF();
     //Util::Inst()->matchPareto("/Users/yihu/Downloads/genPareto", 1, 0.78);
-    vector<UINT32> results_v;
-    Util::Inst()->getParetoVec(2.04,1000,results_v);
-    Util::Inst()->genCDF("./WkldBlc/zipf/3.04_10k_cdf.csv", results_v);
-    Util::Inst()->genPDF("./WkldBlc/zipf/3.04_10k_pdf.csv", results_v);
+    //vector<UINT32> results_v;
+    //Util::Inst()->getParetoVec(2.04,1000,results_v);
+    //Util::Inst()->genCDF("./WkldBlc/zipf/3.04_10k_cdf.csv", results_v);
+    //Util::Inst()->genPDF("./WkldBlc/zipf/3.04_10k_pdf.csv", results_v);
 }

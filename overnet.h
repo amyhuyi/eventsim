@@ -18,11 +18,12 @@
 #include <cmath>
 #include <fstream>
 #include <iomanip>
+
 using namespace std;
 
 typedef int INT32;
 typedef unsigned int UINT32;
-typedef unsigned long UINT64;
+typedef unsigned long long UINT64;
 typedef float FLOAT32;
 typedef double FLOAT64;
 typedef unsigned int ADDRINT;
@@ -71,7 +72,7 @@ public:
         static FLOAT64 QueryPerNode;
         static FLOAT64 UpdatePerNode;
 	static UINT32 TotalVirtualGUID;
-	static UINT32 TotalActiveGUID;
+	static UINT32 ActiveGUIDperPoP;
         static UINT32 NeighborSize;
         static UINT32 DHTHop;
         static UINT32 GNRS_K; //global k
@@ -86,18 +87,19 @@ public:
         static FLOAT32 LocalMobilityPerc;
         static FLOAT32 RegionalMobilityPerc;
         static UINT32  QueryPerGUID;
+        static bool DeployOnlyGW; //GUID workload only from (true) gw cities or (false) all deployed cities
 };
 
-struct Query_Latency{
+typedef struct _Query_Latency{
     FLOAT64 _time;
     vector<FLOAT64> _delay_v;
-    bool operator < (const Query_Latency& query) const
+    bool operator < (const struct _Query_Latency& query) const
     {
         return (_time < query._time);
     }
-};
+} Query_Latency;
 
-struct Retry_Count{
+typedef struct _Retry_Count{
     vector<FLOAT64> _Qdelay;
     vector<FLOAT64> _Udelay;
     UINT32 _retryQuery;
@@ -107,11 +109,11 @@ struct Retry_Count{
     UINT32 _issuedQuery;
     UINT32 _issuedUpdate;
     FLOAT64 _time;
-    bool operator < (const Retry_Count& retryCnt) const
+    bool operator < (const struct _Retry_Count& retryCnt) const
     {
         return (_time < retryCnt._time);
     }
-};
+} Retry_Count;
 
 
 class Stat

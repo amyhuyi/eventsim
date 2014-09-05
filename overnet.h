@@ -88,6 +88,8 @@ public:
         static FLOAT32 RegionalMobilityPerc;
         static UINT32  QueryPerGUID;
         static bool DeployOnlyGW; //GUID workload only from (true) gw cities or (false) all deployed cities
+        static bool CacheOn; //issue queries per guid based on zipf popularity distribution or not
+        static FLOAT64 CachePerc; // percentage of top popular GUID each pop locally cached
 };
 
 typedef struct _Query_Latency{
@@ -98,6 +100,15 @@ typedef struct _Query_Latency{
         return (_time < query._time);
     }
 } Query_Latency;
+
+typedef struct _Query_Count{
+    UINT32 _guidIdx;
+    UINT32 _queryCnt;
+    bool operator < (const struct _Query_Count& query) const
+    {
+        return (_queryCnt < query._queryCnt);
+    }
+} Query_Count;
 
 typedef struct _Retry_Count{
     vector<FLOAT64> _Qdelay;
@@ -121,6 +132,7 @@ class Stat
 public:
 	static vector<UINT32> Storage_per_node; //GNRS storage overhead
         static vector<UINT32> Workload_per_node; //GNRS answer query overhead
+        static vector<UINT32> CacheWrkld_per_node; //GNRS queries answered by local cache
 	static vector<Query_Latency> Query_latency_time;
         static vector<Query_Latency> Insertion_latency_time; //count for insert and update
 	static vector<Retry_Count> Retry_Cnt;//count for both insertion and query retry

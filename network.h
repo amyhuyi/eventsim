@@ -69,25 +69,29 @@ private:
     UINT32 _cityIdx;
     UINT32 _nodeIdx; //index in the global node table
     bool _in_service;
+    bool _in_workload; //in workload_cities or not
     UINT32 _asIdx;
     FLOAT64 _last_update_time;
     FLOAT64 getMaxDistance(vector<UINT32> correctHost);
-    FLOAT64 getMinDistance(vector<UINT32> correctHost);
-    FLOAT64 calInsertDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost);
-    FLOAT64 calQueryDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost);
+    FLOAT64 getMinDistance(vector<UINT32> correctHost, UINT32 & dstNodeIdx);
 public:
     UINT32 _hashID; //hash value of the node in GNRS space, uniquely identify a node
+    vector<Query_Count> _queryWrkld_v;
     Node (UINT32 hashID, UINT32 asIdx, FLOAT64 time);
     ~Node();
     bool isInService();
     void setInService(FLOAT64 time);
     void setOffService(FLOAT64 time);
+    bool isInWorkload();
+    void setInWorkload();
     UINT32 getASIdx();
     UINT32 getNodeIdx();
     UINT32 getHashID();
     void setNodeIdx( UINT32 index);
     void setCityIdx( UINT32 index);
     UINT32 getCityIdx();
+    FLOAT64 calInsertDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost);
+    FLOAT64 calQueryDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost);
     bool insertGUID(UINT32 guid, FLOAT64 time);//time is the absolute finish time
     bool queryGUID(UINT32 guid, FLOAT64 time);
     bool updateGUID(UINT32 guid, FLOAT64 time);
@@ -147,10 +151,14 @@ private:
     void determineRegionalHost(UINT32 guidIdx, set<UINT32>& _hostNodeIdx, int asIdx);
     void determineGlobalHost(UINT32 guidIdx, set<UINT32>& _hostNodeIdx, int asIdx);
     UINT32 getCityIdx(string cityName);
-    void getQueryNodes(UINT32 guidIdx, vector<UINT32>& _queryNodes, FLOAT32 exponent);
-    void getQueryNodesPerLoc(FLOAT32 lat1,FLOAT32 lon1, UINT32 totalNo, vector<UINT32>& _queryNodes, FLOAT32 exponent);
+    void getQueryNodes(UINT32 guidIdx, vector<UINT32>& _queryNodes, vector<UINT32>& _queryQuota, FLOAT32 exponent, bool popularity);
+    void getQueryNodesPerLoc(FLOAT32 lat1,FLOAT32 lon1, UINT32 totalNo, vector<UINT32>& _queryNodes, vector<UINT32>& _queryQuota, FLOAT32 exponent);
+    void getQueryNodesByPoP(UINT32 guidIdx, vector<UINT32>& _queryNodes, vector<UINT32>& _queryQuota, FLOAT32 exponent); //by popularity
     UINT32 issueQueries (UINT32 guidIdx, FLOAT32 exponent);
     void initializeMobility(UINT32 guidIdx);//assign address queue for a GUID among gw cities or all deployed cities
+    FLOAT64 calSingleQueryWrkld (UINT64 currGUIDIdx, UINT32 currNodeIdx); //return this query latency
+    FLOAT32 genLocalityExponent();
+    void genOutFileName();
 public:
     UINT32 getvpHostIdx(UINT32 guid, UINT32 start_idx, UINT32 end_idx);
     vector<Node> global_node_table; //sorted based on node ID
@@ -170,6 +178,7 @@ public:
     void ReadInASInfo(const char* asFile);//as index, tier, capacity
     void ReadInCityInfo(const char* cityFile);
     void InitializeNetwork(); //assign nodes to each AS based on capacity
+    void InitializeStat();
     void InitializeWorkload();//create GUID insertion workload (among gw city or all deployed cities)
     UINT32 generateQueryWorkload(FLOAT64 mean_arrival);
     UINT32 generateUpdateWorkload(FLOAT64 mean_arrival);
@@ -182,7 +191,8 @@ public:
     void determineHost(UINT32 guidIdx, set<UINT32>& glbCalHostSet, set<UINT32>& lclCalHostSet, int nodeIdx);
     UINT32 getIdxRetryCnt(FLOAT64 currTime, bool isDHTretry);
     UINT32 getIdxQueryLatency(FLOAT64 currTime, bool isInsertion);
-    void calStorageWorkload();
+    void calStorageWorkload();//calculate storage workload distribution among hashIDs
+    void calQueryWorkload(); //calculate query workload distribution among hashIDs
 };
 
 #endif

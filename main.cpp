@@ -9,6 +9,7 @@
 vector<UINT32> Stat::Ping_per_node;
 vector<UINT32> Stat::Storage_per_node; //GNRS storage overhead
 vector<UINT32> Stat::Workload_per_node; //GNRS answer query overhead
+vector<UINT32> Stat::CacheWrkld_per_node;
 vector<Query_Latency> Stat::Query_latency_time;
 vector<Query_Latency> Stat::Insertion_latency_time;
 vector<Retry_Count> Stat::Retry_Cnt;
@@ -35,16 +36,18 @@ FLOAT64 Settings::QueryPerNode = 10000;
 FLOAT64 Settings::UpdatePerNode = 1000;
 string Settings::outFileName;
 FLOAT64 Settings::ChurnPerNode=0.01;
-bool Settings::Geo_Lat_On = false;
+bool Settings::Geo_Lat_On = true;
 bool Settings::LocMobSync = true;
 UINT32 Settings::QueryPerGUID = 200;
 FLOAT32 Settings::InterLatWeight = 0.0;
 FLOAT32 Settings::IntraLatWeight = 0.0;
-FLOAT32 Settings::StrongLocalityPerc = 0.6;
-FLOAT32 Settings::MedLocalityPerc = 0.4;
+FLOAT32 Settings::StrongLocalityPerc = 0.5;
+FLOAT32 Settings::MedLocalityPerc = 0.3;
 FLOAT32 Settings::LocalMobilityPerc = 0.6;
 FLOAT32 Settings::RegionalMobilityPerc =0.2;
 bool Settings::DeployOnlyGW = 0;
+bool Settings::CacheOn =0;
+FLOAT64 Settings::CachePerc = 0.1;
 /*!
  *  @brief Computes floor(log2(n))
  *  Works by finding position of MSB set.
@@ -235,6 +238,18 @@ void ParseArg(const char * argv)
 	ss <<arg.substr(11);
 	ss >>Settings::DeployOnlyGW;
     }
+    else if (arg.find("cacheon=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(8);
+	ss >>Settings::CacheOn;
+    }
+    else if (arg.find("cacheperc=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(10);
+	ss >>Settings::CachePerc;
+    }
 }
 
 int main(int argc, const char* argv[])
@@ -275,7 +290,8 @@ int main(int argc, const char* argv[])
     cout<<"Settings::StrongLocalityPerc="<<Settings::StrongLocalityPerc<<endl;
     cout<<"Settings::LocalMobilityPerc="<<Settings::LocalMobilityPerc<<endl;
     cout<<"Settings::RegionalMobilityPerc="<<Settings::RegionalMobilityPerc<<endl;
-    cout<<"Settings::QueryPerGUID="<<Settings::Settings::QueryPerGUID<<endl;
+    cout<<"Settings::QueryPerGUID="<<Settings::QueryPerGUID<<endl;
+    cout<<"Settings::CachePerc="<<Settings::CachePerc<<endl;
     if (Settings::Geo_Lat_On) {
         cout<<"Settings::Geo_Lat_On = true"<<endl;
     } else {
@@ -291,16 +307,17 @@ int main(int argc, const char* argv[])
     } else {
         cout<<"Settings::DeployOnlyGW = false"<<endl;
     }
-    
-    Underlay::Inst()->InitializeWorkload();
-    for (UINT32 i = 0; i < Underlay::Inst()->global_node_table.size(); i++) {
-        Stat::Migration_per_node.push_back(0);
-        Stat::Ping_per_node.push_back(0);
-        Stat::Storage_per_node.push_back(0);
-        Stat::Workload_per_node.push_back(0);
+    if (Settings::CacheOn) {
+        cout<<"Settings::CacheOn = true"<<endl;
+    } else {
+        cout<<"Settings::CacheOn = false"<<endl;
     }
+    Underlay::Inst()->InitializeStat();
+    Underlay::Inst()->InitializeWorkload();
+    
     UINT32 totalNodes = Underlay::Inst()->global_node_table.size();
     Underlay::Inst()->calStorageWorkload();
+    Underlay::Inst()->calQueryWorkload();
     if(Settings::ChurnHours)
         Underlay::Inst()->generateLeaveChurn(Settings::ChurnHours, Settings::ChurnPerNode*totalNodes, 
                 Settings::OnOffSession, Settings::OnOffRounds);

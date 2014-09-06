@@ -778,7 +778,6 @@ void Underlay::InitializeNetwork(){
  
  */
 void Underlay::InitializeStat(){
-    genOutFileName();
     if (Settings::DeployOnlyGW) {
         workload_cities = gw_cities;
     } else {
@@ -852,6 +851,7 @@ void Underlay::InitializeWorkload(){
         initializeMobility(i);
         //popularity_stat.push_back(global_guid_list[i].getPopularity());
     }
+    genOutFileName();
     /*sort(popularity_stat.begin(), popularity_stat.end());
     string outfilename = Settings::outFileName;
     outfilename += "_guidPopularity_cdf";
@@ -862,7 +862,7 @@ void Underlay::genOutFileName(){
     string strgOutName = Settings::outFileName;
     strgOutName += "_";
     stringstream ss (stringstream::in | stringstream::out);
-    ss<<(global_guid_list.size());
+    ss<<global_guid_list.size();
     strgOutName += ss.str();
     strgOutName += "_";
     ss.str("");
@@ -879,6 +879,9 @@ void Underlay::genOutFileName(){
     ss.str("");
     if (Settings::CacheOn) {
         strgOutName += "_CacheOn";
+        ss <<Settings::CachePerc;
+        strgOutName += ss.str();
+        ss.str("");
     } else {
         strgOutName += "_CacheOff";
     }
@@ -1268,7 +1271,7 @@ void Underlay::calQueryWorkload(){
         for (UINT32 j = 0; j < global_node_table[i]._queryWrkld_v.size(); j++) {
             //debug
             cout<<"\n node idx "<<i<<" has queries to " <<global_node_table[i]._queryWrkld_v.size()<< " guids \n"; 
-            if (!Settings::CacheOn || j<global_node_table[i]._queryWrkld_v.size()*0.99) {
+            if (!Settings::CacheOn || j<global_node_table[i]._queryWrkld_v.size()*(1-Settings::CachePerc)) {
                 for (UINT32 k = 0; k < global_node_table[i]._queryWrkld_v[j]._queryCnt; k++) {
                     delay_results_v.push_back((UINT32)calSingleQueryWrkld(global_node_table[i]._queryWrkld_v[j]._guidIdx, i));
                 }
@@ -1304,16 +1307,17 @@ void Underlay::calQueryWorkload(){
     //Util::Inst()->genCDF(strgOutName.c_str(),totalQuota_v);
     //strgOutName = Settings::outFileName + "_qLatency_cdf";
     //Util::Inst()->genCDF(strgOutName.c_str(),delay_results_v);
-    //if (Settings::CacheOn) {
-        //strgOutName = Settings::outFileName + "_cacheWrkld_cdf";
-        //Util::Inst()->genCDF(strgOutName.c_str(),Stat::CacheWrkld_per_node);
-    //}
+    if (Settings::CacheOn) {
+        strgOutName = Settings::outFileName + "_cacheWrkld_cdf";
+        Util::Inst()->genCDF(strgOutName.c_str(),Stat::CacheWrkld_per_node);
+    }
+    vector<FLOAT64> ratio_workload;
     for (int i = 0; i < Stat::Workload_per_node.size(); i++) {
         if (Stat::Storage_per_node[i] !=0) 
-            Stat::Workload_per_node[i] = Stat::Workload_per_node[i]/Stat::Storage_per_node[i];
+            ratio_workload.push_back((FLOAT64)Stat::Workload_per_node[i]/(FLOAT64)Stat::Storage_per_node[i]);
     }
     strgOutName = Settings::outFileName + "_ratioOfQSWrkld_cdf";
-    Util::Inst()->genCDF(strgOutName.c_str(),Stat::Workload_per_node);
+    Util::Inst()->genCDF(strgOutName.c_str(),ratio_workload);
 }
 /*
  generate query workload: independent of update
@@ -1632,11 +1636,11 @@ void Underlay::calStorageWorkload(){
     sort(Stat::Storage_per_node.begin(),Stat::Storage_per_node.end());
     string strgOutName = Settings::outFileName;
     //debug
-    cout<<"storage per node \n";
+    //cout<<"storage per node \n";
     UINT32 unitStrWrkld = 1;
     bool setUnit= false;
     for (int i = 0; i < Stat::Storage_per_node.size(); i++) {
-        cout<<Stat::Storage_per_node[i]<<endl;
+        //cout<<Stat::Storage_per_node[i]<<endl;
         if (!setUnit && Stat::Storage_per_node[i] !=0) {
             unitStrWrkld = Stat::Storage_per_node[i];
             setUnit = true;
@@ -1660,7 +1664,7 @@ void Underlay::SynchNetwork(){
 /* binary search the nearest hashID of the guid, return its index in the global node table
  */
 UINT32 Underlay::getvpHostIdx(UINT32 guid, UINT32 start_idx, UINT32 end_idx){
-   /*
+   
     if(global_node_table[0].getHashID() > guid){
        return start_idx;
     }
@@ -1695,7 +1699,8 @@ UINT32 Underlay::getvpHostIdx(UINT32 guid, UINT32 start_idx, UINT32 end_idx){
         }
         else 
             return (getvpHostIdx(guid, start_idx, middle_idx-1));
-    }*/
+    }
+    /*
     int minDistance;
     UINT32 vphostIdx;
     assert(global_node_table.size());
@@ -1707,5 +1712,5 @@ UINT32 Underlay::getvpHostIdx(UINT32 guid, UINT32 start_idx, UINT32 end_idx){
             vphostIdx =i;
         }
     }
-    return vphostIdx;
+    return vphostIdx;*/
 }

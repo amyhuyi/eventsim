@@ -224,6 +224,29 @@ void Util::matchPareto(const char* filename, FLOAT64 scale, FLOAT64 thisShape){
 
 }
 
+void Util::genCDF(const char* outfilename, vector<FLOAT64>& results_v) {
+    sort(results_v.begin(), results_v.end());
+    ofstream outfHdlr;
+    outfHdlr.open(outfilename,ios::out | ios::in | ios:: trunc);
+    double pcent = 0.0;
+    double idx;
+    for (int i=0; i<results_v.size(); i++) {
+        if ((i+1)< results_v.size()) {
+            if (results_v[i]<results_v[i+1]) {
+                idx= i+1;
+                pcent = idx/results_v.size();
+                outfHdlr<<std::setprecision(10)<<pcent<<'\t'<<results_v[i]<<endl;
+            }
+        }
+        else{
+            idx= i+1;
+            pcent = idx/results_v.size();
+            outfHdlr<<std::setprecision(10)<<pcent<<'\t'<<results_v[i]<<endl;
+        }
+    }
+    outfHdlr.close();
+}
+
 void Util::genCDF(const char* outfilename, vector<UINT32>& results_v){
     sort(results_v.begin(), results_v.end());
     ofstream outfHdlr;

@@ -28,6 +28,7 @@ public:
     UINT32 calHashIDCapacity();
     UINT32 calParetoMean();
     void genCDF(const char* outfilename, vector<UINT32>& results_v);
+    void genCDF(const char* outfilename, vector<FLOAT64>& results_v);
     void genPDF(const char* outfilename, vector<UINT32>& results_v);
     void getParetoVec(FLOAT64 thisShape, long int totalNo, vector<UINT32>& results_v);
 };

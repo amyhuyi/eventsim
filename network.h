@@ -92,6 +92,7 @@ public:
     UINT32 getCityIdx();
     FLOAT64 calInsertDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost);
     FLOAT64 calQueryDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost);
+    FLOAT64 calQueryDelayRandomSelection(vector<UINT32> correctHost);
     bool insertGUID(UINT32 guid, FLOAT64 time);//time is the absolute finish time
     bool queryGUID(UINT32 guid, FLOAT64 time);
     bool updateGUID(UINT32 guid, FLOAT64 time);

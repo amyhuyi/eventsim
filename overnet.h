@@ -90,6 +90,7 @@ public:
         static bool DeployOnlyGW; //GUID workload only from (true) gw cities or (false) all deployed cities
         static bool CacheOn; //issue queries per guid based on zipf popularity distribution or not
         static FLOAT64 CachePerc; // percentage of top popular GUID each pop locally cached
+        static bool balanceBase; // calculate baseline of workload balance
 };
 
 typedef struct _Query_Latency{

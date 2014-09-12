@@ -352,6 +352,12 @@ FLOAT64 Node::calInsertDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyIngl
     }
 }
 
+FLOAT64 Node::calQueryDelayRandomSelection(vector<UINT32> correctHost){
+    assert(correctHost.size());
+    UINT32 randSelHost = Util::Inst()->GenInt(correctHost.size());
+    Stat::Workload_per_node[correctHost[randSelHost]]++;
+    return (Underlay::Inst()->getLatency(_nodeIdx, correctHost[randSelHost])*2);
+}
 
 FLOAT64 Node::calQueryDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost){
     FLOAT64 minDistance;
@@ -1235,8 +1241,12 @@ FLOAT64 Underlay::calSingleQueryWrkld(UINT64 currGUIDIdx, UINT32 currNodeIdx){
     for (it = globalHostset.begin(); it != globalHostset.end(); ++it) {
         if (localHostset.find((*it))== localHostset.end())
             onlyInglobal.push_back((*it));
-    }   
-    return global_node_table[currNodeIdx].calQueryDelay(onlyInlocal, onlyInglobal, correctHost);
+    }
+    if (Settings::balanceBase) {
+        return global_node_table[currNodeIdx].calQueryDelayRandomSelection(correctHost);
+    } else {
+        return global_node_table[currNodeIdx].calQueryDelay(onlyInlocal, onlyInglobal, correctHost);   
+    }
 }
 void Underlay::calQueryWorkload(){
     assert(Stat::Workload_per_node.size() == global_node_table.size());
@@ -1253,13 +1263,13 @@ void Underlay::calQueryWorkload(){
     vector<UINT32> delay_results_v;
     FLOAT32 exponent;
     for (UINT32 currGUIDIdx = 0; currGUIDIdx < global_guid_list.size(); currGUIDIdx++) {
-        if (global_guid_list[currGUIDIdx].getPopularity()<10) {
+        //debug
+        /*if (global_guid_list[currGUIDIdx].getPopularity()<10) {
             exponent = -0.8;
         } else {
             exponent = genLocalityExponent();
         }
-        //debug
-        //getQueryNodesByPoP(currGUIDIdx,queryNodes,queryQuota,exponent);
+        getQueryNodesByPoP(currGUIDIdx,queryNodes,queryQuota,exponent);*/
         getQueryNodesByPoP(currGUIDIdx,queryNodes,queryQuota,0);
         assert(queryNodes.size()==queryQuota.size());
         for (UINT32 i = 0; i< queryNodes.size(); i++) {
@@ -1305,8 +1315,8 @@ void Underlay::calQueryWorkload(){
     Util::Inst()->genCDF(strgOutName.c_str(),Stat::Workload_per_node);
     //strgOutName = Settings::outFileName + "_queryQuota_cdf";
     //Util::Inst()->genCDF(strgOutName.c_str(),totalQuota_v);
-    //strgOutName = Settings::outFileName + "_qLatency_cdf";
-    //Util::Inst()->genCDF(strgOutName.c_str(),delay_results_v);
+    strgOutName = Settings::outFileName + "_qLatency_cdf";
+    Util::Inst()->genCDF(strgOutName.c_str(),delay_results_v);
     if (Settings::CacheOn) {
         strgOutName = Settings::outFileName + "_cacheWrkld_cdf";
         Util::Inst()->genCDF(strgOutName.c_str(),Stat::CacheWrkld_per_node);

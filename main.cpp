@@ -47,6 +47,7 @@ FLOAT32 Settings::LocalMobilityPerc = 0.6;
 FLOAT32 Settings::RegionalMobilityPerc =0.2;
 bool Settings::DeployOnlyGW = 0;
 bool Settings::CacheOn =0;
+bool Settings::balanceBase =0;
 FLOAT64 Settings::CachePerc = 0.1;
 /*!
  *  @brief Computes floor(log2(n))
@@ -244,6 +245,12 @@ void ParseArg(const char * argv)
 	ss <<arg.substr(8);
 	ss >>Settings::CacheOn;
     }
+    else if (arg.find("balancebase=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(12);
+	ss >>Settings::balanceBase;
+    }
     else if (arg.find("cacheperc=") != string::npos)
     {
 	stringstream ss (stringstream::in | stringstream::out);
@@ -311,6 +318,11 @@ int main(int argc, const char* argv[])
         cout<<"Settings::CacheOn = true"<<endl;
     } else {
         cout<<"Settings::CacheOn = false"<<endl;
+    }
+    if (Settings::balanceBase) {
+        cout<<"Settings::balanceBase = true"<<endl;
+    } else {
+        cout<<"Settings::balanceBase = false"<<endl;
     }
     Underlay::Inst()->InitializeStat();
     Underlay::Inst()->InitializeWorkload();

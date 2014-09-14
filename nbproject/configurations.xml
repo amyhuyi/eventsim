@@ -4,9 +4,13 @@
     <logicalFolder name="HeaderFiles"
                    displayName="Header Files"
                    projectFiles="true">
+      <itemPath>as.h</itemPath>
+      <itemPath>city.h</itemPath>
       <itemPath>event.h</itemPath>
       <itemPath>event_scheduler.h</itemPath>
+      <itemPath>guid.h</itemPath>
       <itemPath>network.h</itemPath>
+      <itemPath>node.h</itemPath>
       <itemPath>overnet.h</itemPath>
       <itemPath>util.h</itemPath>
     </logicalFolder>
@@ -83,10 +87,14 @@
         <itemPath>genran/utility.h</itemPath>
         <itemPath>genran/wh.txt</itemPath>
       </logicalFolder>
+      <itemPath>as.cpp</itemPath>
+      <itemPath>city.cpp</itemPath>
       <itemPath>event.cpp</itemPath>
       <itemPath>event_scheduler.cpp</itemPath>
+      <itemPath>guid.cpp</itemPath>
       <itemPath>main.cpp</itemPath>
       <itemPath>network.cpp</itemPath>
+      <itemPath>node.cpp</itemPath>
       <itemPath>overnet.cpp</itemPath>
       <itemPath>util.cpp</itemPath>
     </logicalFolder>
@@ -125,6 +133,14 @@
       </item>
       <item path="README.md" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="as.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="as.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="city.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="city.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="event.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="event.h" ex="false" tool="3" flavor2="0">
@@ -257,11 +273,19 @@
       </item>
       <item path="genran/wh.txt" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="guid.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="guid.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="main.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="network.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="network.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="node.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="node.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="overnet.cpp" ex="false" tool="1" flavor2="0">
       </item>
@@ -296,6 +320,14 @@
       </item>
       <item path="README.md" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="as.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="as.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="city.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="city.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="event.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="event.h" ex="false" tool="3" flavor2="0">
@@ -428,11 +460,19 @@
       </item>
       <item path="genran/wh.txt" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="guid.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="guid.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="main.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="network.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="network.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="node.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="node.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="overnet.cpp" ex="false" tool="1" flavor2="0">
       </item>

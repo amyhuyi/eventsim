@@ -263,14 +263,14 @@ int main(int argc, const char* argv[])
 {
     EventScheduler::Inst()->AddEvent(new DummyEvent());
     cout <<"Initializing the network ..." <<endl;
-    //argv[1]: cityFileName, argv[2]:routeFileName, argv[3]:asInfoFileName
-    Underlay::CreateInst(argv[1], argv[2], argv[3]);
-    if(argc>=4){
-        for (int i = 4; i < argc; i++) {
+    //argv[1]: cityFileName, argv[2]:routeFileName, argv[3]:asInfoFileName, argv[4]: predicateFile
+    Underlay::CreateInst(argv[1], argv[2], argv[3],argv[4]);
+    if(argc>=5){
+        for (int i = 5; i < argc; i++) {
             ParseArg(argv[i]);
         }
     }else{
-        cout<<"USAGE:: argv[1]: cityFileName, argv[2]:routeFileName, argv[3]:asInfoFileName"<<endl;
+        cout<<"USAGE:: argv[1]: cityFileName, argv[2]:routeFileName, argv[3]:asInfoFileName,argv[4]: predicateFile"<<endl;
         abort();
     }
     cout<<"total # nodes "<<Underlay::Inst()->global_node_table.size()<<endl;

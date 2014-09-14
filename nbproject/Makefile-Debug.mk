@@ -35,6 +35,8 @@ OBJECTDIR=${CND_BUILDDIR}/${CND_CONF}/${CND_PLATFORM}
 
 # Object Files
 OBJECTFILES= \
+	${OBJECTDIR}/as.o \
+	${OBJECTDIR}/city.o \
 	${OBJECTDIR}/event.o \
 	${OBJECTDIR}/event_scheduler.o \
 	${OBJECTDIR}/genran/extreal.o \
@@ -58,8 +60,10 @@ OBJECTFILES= \
 	${OBJECTDIR}/genran/tryurng.o \
 	${OBJECTDIR}/genran/tryurng1.o \
 	${OBJECTDIR}/genran/utility.o \
+	${OBJECTDIR}/guid.o \
 	${OBJECTDIR}/main.o \
 	${OBJECTDIR}/network.o \
+	${OBJECTDIR}/node.o \
 	${OBJECTDIR}/overnet.o \
 	${OBJECTDIR}/util.o
 
@@ -87,6 +91,16 @@ LDLIBSOPTIONS=-lm
 ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/eventsim: ${OBJECTFILES}
 	${MKDIR} -p ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}
 	${LINK.cc} -o ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/eventsim ${OBJECTFILES} ${LDLIBSOPTIONS}
+
+${OBJECTDIR}/as.o: as.cpp 
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.cc) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/as.o as.cpp
+
+${OBJECTDIR}/city.o: city.cpp 
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.cc) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/city.o city.cpp
 
 ${OBJECTDIR}/event.o: event.cpp 
 	${MKDIR} -p ${OBJECTDIR}
@@ -203,6 +217,11 @@ ${OBJECTDIR}/genran/utility.o: genran/utility.cpp
 	${RM} "$@.d"
 	$(COMPILE.cc) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/genran/utility.o genran/utility.cpp
 
+${OBJECTDIR}/guid.o: guid.cpp 
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.cc) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/guid.o guid.cpp
+
 ${OBJECTDIR}/main.o: main.cpp 
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
@@ -212,6 +231,11 @@ ${OBJECTDIR}/network.o: network.cpp
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
 	$(COMPILE.cc) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/network.o network.cpp
+
+${OBJECTDIR}/node.o: node.cpp 
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.cc) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/node.o node.cpp
 
 ${OBJECTDIR}/overnet.o: overnet.cpp 
 	${MKDIR} -p ${OBJECTDIR}

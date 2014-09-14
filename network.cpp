@@ -14,542 +14,6 @@
 #include "util.h"
 #include "genran/str.h"
 
-CITY::CITY(string city, string state, string country, FLOAT32 lat, FLOAT32 lon, FLOAT32 pop, UINT32 ixp_weight){
-    _city = city;
-    _state = state;
-    _country = country;
-    _latitude = lat;
-    _longitude = lon;
-    _population = pop;
-    _ixp_weight = ixp_weight;
-    _nodeIdx_v.clear();
-}
-
-CITY::~CITY(){
-    
-}
-
-string CITY::getCity(){
-    return _city;
-}
-
-string CITY::getState(){
-    return _state;
-}
-
-string CITY::getCountry(){
-    return _country;
-}
-
-FLOAT32 CITY::getLat(){
-    return _latitude;
-}
-
-FLOAT32 CITY::getLon(){
-    return _longitude;
-}
-
-FLOAT32 CITY::getPop(){
-    return _population;
-}
-UINT32 CITY::getIXPWeight(){
-    return _ixp_weight;
-}
-bool CITY::isGW(){
-    return (_ixp_weight>0);
-}
-
-GUID::GUID (UINT32 id, UINT32 nodeIdx, FLOAT64 time, char mobilityDegree, UINT64 popularity){
-    _guid = id;
-    _popularity = popularity;
-    //_address_nodeIdx = nodeIdx;
-    _vphostIdx = Underlay::Inst()->getvpHostIdx(_guid,0,Underlay::Inst()->global_node_table.size()-1);
-    //_last_update_time = time;
-    _mobility_degree = mobilityDegree;
-    _address_q.clear();
-    _address_q.push_back(nodeIdx);
-    _updateTime_q.clear();
-    _updateTime_q.push_back(time);
-}
-GUID::~GUID(){
-    
-}
-
-UINT64 GUID::getPopularity(){
-    return _popularity;
-}
-UINT32 GUID::getGUID(){
-    return _guid;
-}
-
-char GUID::getMobility(){
-    return _mobility_degree;
-}
-
-void GUID::setMobility(char newMobilityDegree){
-    _mobility_degree = newMobilityDegree;
-}
-
-UINT32 GUID::getvphostIdx(){
-    return _vphostIdx;
-}
-
-FLOAT64 GUID::getLastUpdateTime (){
-    assert(_updateTime_q.size());
-    return _updateTime_q[0];
-}
- /*
-  ensure _address_q[0] is current address node, _address_q[1] is the next, round robin
-  */      
-void GUID::updateAddrNodeIdx(UINT32 newNodeIdx, FLOAT64 time){
-    assert(_address_q.size() && _updateTime_q.size());
-    if (_address_q[0] != newNodeIdx) { //allow a node update an GUID multiple times in one time-frame
-        UINT32 curr = *_address_q.begin();
-        FLOAT64 currTime = *_updateTime_q.begin();
-        _address_q.erase(_address_q.begin());
-        _address_q.push_back(curr);
-        _updateTime_q.erase(_updateTime_q.begin());
-        _updateTime_q.push_back(currTime);
-        assert(_address_q[0] == newNodeIdx);
-    }
-    _updateTime_q[0] = time;
-}
-
-UINT32 GUID::getNextAddrNodeIdx(){
-    assert(_address_q.size());   
-    if (_address_q.size()>1) {
-        return _address_q[1];
-    } else {
-        return _address_q[0];
-    }
-}
-
-UINT32 GUID::getCurrAddrNodeIdx(){
-    assert(_address_q.size());
-    return _address_q[0];
-}
-
-UINT32 GUID::getAddrASIdx(){
-    assert(_address_q.size());
-    return Underlay::Inst()->global_node_table[_address_q[0]].getASIdx();
-}
-
-Node::Node(UINT32 hashID, UINT32 asIdx, FLOAT64 time){
-    _hashID = hashID;
-    _asIdx = asIdx;
-    _in_service = true;
-    _in_workload = false;
-    _last_update_time = time;
-}
-
-Node::~Node(){}
-
-bool NodeSortPredicate( const Node d1, const Node d2)
-{
-  return d1._hashID < d2._hashID;
-}
-
-bool Node::isInService(){
-    return _in_service;
-}
-
-bool Node::isInWorkload(){
-    return _in_workload;
-}
-
-void Node::setInWorkload(){
-    _in_workload = true;
-}
-void Node::setInService(FLOAT64 time){
-    _in_service = true;
-    _last_update_time = time;
-}
-void Node::setOffService(FLOAT64 time){
-    _in_service = false;
-    _last_update_time = time;
-}
-UINT32 Node::getASIdx(){
-    return _asIdx;
-}
-UINT32 Node::getHashID(){
-    return _hashID;
-}
-
-UINT32 Node::getNodeIdx(){
-    return _nodeIdx;
-}
-
-UINT32 Node::getCityIdx() {
-    return _cityIdx;
-}
-
-void Node::setCityIdx(UINT32 index){
-    _cityIdx = index;
-}
-
-void Node::setNodeIdx(UINT32 index){
-    _nodeIdx = index;
-}
-
-
-bool Node::insertGUID(UINT32 guidIdx, FLOAT64 time){
-    if(isInService()){
-        GNRSOperationMessage * anInsertionMsg = new GNRSOperationMessage (MT_GUID_INSERTION, _nodeIdx, guidIdx, time);
-        EventScheduler::Inst()->AddEvent(anInsertionMsg);
-        return true;
-    }
-    return false;
-}
-
-bool Node::updateGUID(UINT32 guidIdx, FLOAT64 time){
-    if(isInService()){
-        GNRSOperationMessage * anUpdateMsg = new GNRSOperationMessage (MT_GUID_UPDATE, _nodeIdx, guidIdx, time);
-        EventScheduler::Inst()->AddEvent(anUpdateMsg);
-        return true;
-    } 
-    return false;
-}
-    
-bool Node::queryGUID(UINT32 guidIdx, FLOAT64 time){
-    if(isInService()){
-        GNRSOperationMessage * aQueryMsg = new GNRSOperationMessage (MT_GUID_QEURY, _nodeIdx, guidIdx, time);
-        EventScheduler::Inst()->AddEvent(aQueryMsg);
-        return true;
-    }
-    return false;
-}
-
-AS::AS(UINT32 asindex, UINT32 tier, UINT32 capacity, UINT32 asNum, string asCountry){
-    _asIdx = asindex;
-    _tier = tier;
-    _capacity = capacity;
-    _asNum = asNum;
-    _asCntry = asCountry;
-    _myCities.clear();
-    _myNodes.clear();
-}
-
- AS::~AS(){}
- 
- UINT32 AS::getASIndex(){
-     return _asIdx;
- }
- 
- UINT32 AS::getCapacity(){
-     return _capacity;
- }
- 
- UINT32 AS::getTier(){
-     return _tier;
- }
- 
- UINT32 AS::getASNum(){
-     return _asNum;
- }
- 
- string AS::getASCntry(){
-     return _asCntry;
- }
- 
-void AS::beNotifedAjoin(UINT32 nodeIdx){
-    if(_local_view_offNodes.find(nodeIdx) != _local_view_offNodes.end()){
-        _local_view_offNodes.erase(_local_view_offNodes.find(nodeIdx));
-    }
-}
-void AS::beNotifedAleave(UINT32 nodeIdx){
-    _local_view_offNodes.insert(nodeIdx);
-}
-void AS::joinGNRS(FLOAT64 lifetime){
-    set <UINT32>::iterator it;
-    for (it=_myNodes.begin(); it!=_myNodes.end(); ++it){
-        if(!Underlay::Inst()->global_node_table[(*it)].isInService())
-            upgradeGNRS((*it), 0, lifetime,0);
-    }
- }   //initialize all nodes in service
- 
-void AS::leaveGNRS(FLOAT64 offtime){
-    set <UINT32>::iterator it;
-    for (it=_myNodes.begin(); it!=_myNodes.end(); ++it){
-        if(Underlay::Inst()->global_node_table[(*it)].isInService())
-            downgradeGNRS((*it), 0, offtime,0);
-    }
-}   //remove all nodes from service
-void AS::upgradeGNRS(UINT32 nodeIdx, FLOAT64 arrival_time,FLOAT64 lifetime, UINT32 churnRounds){
-    assert(_myNodes.find(nodeIdx) != _myNodes.end());
-    assert(!Underlay::Inst()->global_node_table[nodeIdx].isInService());
-    PreJoinMessage * aJoinMsg = new PreJoinMessage (nodeIdx, arrival_time,lifetime, churnRounds);
-    EventScheduler::Inst()->AddEvent(aJoinMsg);
-}// upgrade GNRS membership: add one of my nodes in service
-    
-void AS::downgradeGNRS(UINT32 nodeIdx, FLOAT64 arrival_time,FLOAT64 offtime, UINT32 churnRounds){
-    assert(_myNodes.find(nodeIdx) != _myNodes.end());
-    assert(Underlay::Inst()->global_node_table[nodeIdx].isInService());
-    PreLeaveMessage * aLeaveMsg = new PreLeaveMessage (nodeIdx, arrival_time,offtime, churnRounds);
-    EventScheduler::Inst()->AddEvent(aLeaveMsg);
-} //downgrade GNRS membership: remove one of my nodes from service
-
-FLOAT64 Node::getMaxDistance(vector<UINT32> correctHost){
-    assert(correctHost.size());
-    FLOAT64 maxDistance;
-    for (int i = 0; i < correctHost.size(); i++) {
-        if (i==0){
-            maxDistance = Underlay::Inst()->getLatency(_nodeIdx, correctHost[i]);
-        }  
-        else {
-            if (maxDistance < Underlay::Inst()->getLatency(_nodeIdx, correctHost[i])) {
-                maxDistance = Underlay::Inst()->getLatency(_nodeIdx, correctHost[i]);
-            }
-        }
-    }
-    return maxDistance;
-}
-
-FLOAT64 Node::getMinDistance(vector<UINT32> correctHost, UINT32 & dstNodeIdx){
-    assert(correctHost.size());
-    FLOAT64 minDistance;
-    minDistance = Underlay::Inst()->getLatency(_nodeIdx, correctHost[0]);
-    dstNodeIdx = correctHost[0];
-    //debug
-    //cout<<"Candidate distance: ";
-    for (int i = 1; i < correctHost.size(); i++) {
-        //cout<<Underlay::Inst()->getLatency(_nodeIdx, correctHost[i]) << "w node "<<correctHost[i]<<",";
-        if (minDistance > Underlay::Inst()->getLatency(_nodeIdx, correctHost[i])) {
-            minDistance = Underlay::Inst()->getLatency(_nodeIdx, correctHost[i]);
-            dstNodeIdx = correctHost[i];
-        }
-    }
-    UINT32 cityIdx = Underlay::Inst()->global_node_table[dstNodeIdx].getCityIdx();
-    //cout<<"Min Distance "<<minDistance<<" selected node "<<dstNodeIdx
-    //        <<","<<Underlay::Inst()->city_list[cityIdx].getCity()<<","<<Underlay::Inst()->city_list[cityIdx].getState()
-    //        <<Underlay::Inst()->city_list[cityIdx].getCountry()<<endl;
-    return minDistance;
-}
-
-FLOAT64 Node::calInsertDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost){
-    FLOAT64 maxDistance;
-    FLOAT64 retryDistance;
-    UINT32 dstNodeIdx;
-    if(onlyInglobal.size()==0){
-        assert(correctHost.size());
-        maxDistance = getMaxDistance(correctHost);
-        return maxDistance*2;
-    }
-    else{
-        if (correctHost.size()) {
-            retryDistance = getMinDistance(correctHost,dstNodeIdx)*2;
-            retryDistance += getMaxDistance(onlyInglobal)*2;
-            //cout<<"retryDistance #3"<<retryDistance<<endl;
-        } 
-        else {
-            assert(onlyInlocal.size()&&onlyInglobal.size());
-            retryDistance = getMaxDistance(onlyInlocal)*2;
-            retryDistance += getMaxDistance(onlyInglobal)*2;
-            retryDistance += (Settings::DHTHop) * getMinDistance(onlyInglobal,dstNodeIdx);
-            //cout<<"retryDistance #4"<<retryDistance<<endl;
-        }
-        //debug
-        return retryDistance;
-    }
-}
-
-FLOAT64 Node::calQueryDelayRandomSelection(vector<UINT32> correctHost){
-    assert(correctHost.size());
-    UINT32 randSelHost = Util::Inst()->GenInt(correctHost.size());
-    Stat::Workload_per_node[correctHost[randSelHost]]++;
-    return (Underlay::Inst()->getLatency(_nodeIdx, correctHost[randSelHost])*2);
-}
-
-FLOAT64 Node::calQueryDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost){
-    FLOAT64 minDistance;
-    FLOAT64 retryDistance;
-    UINT32 dstNodeIdx;
-    assert(Stat::Workload_per_node.size()==Underlay::Inst()->global_node_table.size());
-    if(onlyInlocal.size()){
-        if(correctHost.size() && getMinDistance(onlyInlocal,dstNodeIdx)< getMinDistance(correctHost,dstNodeIdx)){
-            retryDistance = getMinDistance(onlyInlocal,dstNodeIdx)*2;
-            Stat::Workload_per_node[dstNodeIdx]++;
-            retryDistance += getMinDistance(correctHost,dstNodeIdx)*2;
-            Stat::Workload_per_node[dstNodeIdx]++;
-            //debug
-            cout<<"retryDistance #1"<<retryDistance<<endl;
-            return retryDistance;
-        }
-        else if(correctHost.size() && getMinDistance(onlyInlocal,dstNodeIdx)>= getMinDistance(correctHost,dstNodeIdx)){
-            minDistance = getMinDistance(correctHost,dstNodeIdx);
-            Stat::Workload_per_node[dstNodeIdx]++;
-            return minDistance*2;
-        }
-        else{
-            retryDistance = getMaxDistance(onlyInlocal)*2;
-            for (int i = 0; i < onlyInlocal.size(); i++) {
-                Stat::Workload_per_node[onlyInlocal[i]] ++;
-            }
-            retryDistance += getMinDistance(onlyInglobal,dstNodeIdx)*2;
-            retryDistance += (Settings::DHTHop) * getMinDistance(onlyInglobal,dstNodeIdx);
-            Stat::Workload_per_node[dstNodeIdx]++;
-            //debug
-            cout<<"retryDistance #2"<<retryDistance<<endl;
-            return retryDistance;
-        }
-    }
-    else{
-        minDistance = getMinDistance(correctHost,dstNodeIdx);
-        Stat::Workload_per_node[dstNodeIdx]++;
-        return minDistance*2;
-    }
-}
-UINT32 Underlay::getIdxQueryLatency(FLOAT64 currTime, bool isInsertion){
-    if(isInsertion){
-        for (int i = 0; i < Stat::Insertion_latency_time.size(); i++) {
-            if (Stat::Insertion_latency_time[i]._time == currTime)
-                return i;
-        }
-    }
-    else{
-        for (int i = 0; i < Stat::Query_latency_time.size(); i++) {
-            if(Stat::Query_latency_time[i]._time == currTime)
-                return i;
-        }
-    }
-    Query_Latency aQueryLatency;
-    aQueryLatency._time = currTime;
-    aQueryLatency._delay_v.clear();
-    if(isInsertion){
-        Stat::Insertion_latency_time.push_back(aQueryLatency);
-        return (Stat::Insertion_latency_time.size()-1);
-    }
-    else{
-        Stat::Query_latency_time.push_back(aQueryLatency);
-        return (Stat::Query_latency_time.size()-1);
-    }
-}
-
-UINT32 Underlay::getIdxRetryCnt(FLOAT64 currTime, bool isDHTretry){
-    if(isDHTretry){
-        for(int i=0; i<Stat::DHT_RetryCnt.size(); i++){
-            if (Stat::DHT_RetryCnt[i]._time == currTime) {
-                return i;
-            }
-        }
-    }
-    else {
-        for(int i=0; i<Stat::Retry_Cnt.size(); i++){
-            if (Stat::Retry_Cnt[i]._time == currTime) {
-                return i;
-            }
-        }
-    }
-    Retry_Count aRetryCount;
-    aRetryCount._time = currTime;
-    aRetryCount._retryQMsg =0;
-    aRetryCount._retryQuery=0;
-    aRetryCount._retryUMsg=0;
-    aRetryCount._retryUpdate=0;
-    aRetryCount._issuedQuery=0;
-    aRetryCount._issuedUpdate=0;
-    aRetryCount._Qdelay.clear();
-    aRetryCount._Udelay.clear();
-    if(isDHTretry){
-        Stat::DHT_RetryCnt.push_back(aRetryCount);
-        return (Stat::DHT_RetryCnt.size()-1);
-    }
-    else {
-        Stat::Retry_Cnt.push_back(aRetryCount);
-        return (Stat::Retry_Cnt.size()-1);
-    }
-}
-/*
- * 1. calculate correct host 2. updated local view from the correct host of this operation
- * 3. statistics on delay and retry no. 
- */
-void Node::calCorrectHost(set<UINT32> localHostset, set<UINT32> globalHostset, char opt){
-    assert(opt=='I'||opt=='Q'||opt=='U');
-    //find correct host
-    set<UINT32>::iterator it;
-    vector<UINT32> correctHost;
-    correctHost.clear();
-    vector<UINT32> onlyInlocal;
-    vector<UINT32> onlyInglobal;
-    for(it=localHostset.begin();it!=localHostset.end();++it){
-        if(globalHostset.find((*it))!=globalHostset.end())
-            correctHost.push_back((*it));
-        else
-            onlyInlocal.push_back((*it));
-    }
-    for (it = globalHostset.begin(); it != globalHostset.end(); ++it) {
-        if (localHostset.find((*it))== localHostset.end())
-            onlyInglobal.push_back((*it));
-    }
-    
-    FLOAT64 currDelay=-1;
-    if (opt == 'I' || opt == 'U') {
-        currDelay = calInsertDelay(onlyInlocal, onlyInglobal, correctHost);
-    } else {
-        currDelay = calQueryDelay(onlyInlocal, onlyInglobal, correctHost);
-    }
-    //statistics accounting on retry
-    bool shouldInsertRetryCnt = false;
-    UINT32 currRetryMsg=0;
-    UINT32 idxRetryCnt=0;
-    UINT32 dstNodeIdx;
-    if(correctHost.size()==0){
-        idxRetryCnt = Underlay::Inst()->getIdxRetryCnt(EventScheduler::Inst()->GetCurrentTime(), true);
-        if(opt == 'I' || opt == 'U' ){
-            Stat::DHT_RetryCnt[idxRetryCnt]._retryUpdate++;
-            Stat::DHT_RetryCnt[idxRetryCnt]._Udelay.push_back(currDelay);
-        }
-        else if(opt == 'Q'){
-            Stat::DHT_RetryCnt[idxRetryCnt]._retryQuery++;
-            Stat::DHT_RetryCnt[idxRetryCnt]._Qdelay.push_back(currDelay);
-        }    
-        shouldInsertRetryCnt=true;
-    }    
-    if (correctHost.size() < localHostset.size()) {
-        if(opt == 'I' || opt == 'U' || (opt == 'Q'&& correctHost.size()==0)){
-            currRetryMsg = (localHostset.size()- correctHost.size());
-            shouldInsertRetryCnt =true;
-        }
-        else if(opt == 'Q' && getMinDistance(onlyInlocal,dstNodeIdx)< getMinDistance(correctHost,dstNodeIdx)){
-            currRetryMsg = localHostset.size()-1; //assume query one nearest host fail, retry all the other available host
-            shouldInsertRetryCnt =true;
-        }
-    }
-    if(shouldInsertRetryCnt){
-        idxRetryCnt = Underlay::Inst()->getIdxRetryCnt(EventScheduler::Inst()->GetCurrentTime(), false);
-        if(opt == 'I'|| opt == 'U'){
-            Stat::Retry_Cnt[idxRetryCnt]._Udelay.push_back(currDelay);
-            Stat::Retry_Cnt[idxRetryCnt]._retryUpdate++;
-            Stat::Retry_Cnt[idxRetryCnt]._retryUMsg += currRetryMsg;
-        }
-        else if(opt == 'Q'){
-            Stat::Retry_Cnt[idxRetryCnt]._Qdelay.push_back(currDelay);
-            Stat::Retry_Cnt[idxRetryCnt]._retryQuery++;
-            Stat::Retry_Cnt[idxRetryCnt]._retryQMsg += currRetryMsg;
-        }
-        //update local view of node table
-        for (int i = 0; i < onlyInlocal.size(); i++) {
-            assert(Underlay::Inst()->as_v[_asIdx]._local_view_offNodes.find(onlyInlocal[i]) == Underlay::Inst()->as_v[_asIdx]._local_view_offNodes.end());
-            if(Underlay::Inst()->global_node_table[onlyInlocal[i]].isInService()==false)
-                Underlay::Inst()->as_v[_asIdx]._local_view_offNodes.insert(onlyInlocal[i]);
-            }
-        for (int i = 0; i < onlyInglobal.size(); i++) {
-            assert(Underlay::Inst()->global_node_table[onlyInglobal[i]].isInService());
-            if(Underlay::Inst()->as_v[_asIdx]._local_view_offNodes.find(onlyInglobal[i])!= Underlay::Inst()->as_v[_asIdx]._local_view_offNodes.end())
-                Underlay::Inst()->as_v[_asIdx]._local_view_offNodes.erase(Underlay::Inst()->as_v[_asIdx]._local_view_offNodes.find(onlyInglobal[i]));
-            }
-    }
-    //latency statistics accounting
-    UINT32 idxLatency=0;
-    if (opt == 'I' || opt == 'U') {
-        idxLatency = Underlay::Inst()->getIdxQueryLatency(EventScheduler::Inst()->GetCurrentTime(), true);
-        Stat::Insertion_latency_time[idxLatency]._delay_v.push_back(currDelay);
-    } 
-    else {
-        idxLatency = Underlay::Inst()->getIdxQueryLatency(EventScheduler::Inst()->GetCurrentTime(), false);
-        Stat::Query_latency_time[idxLatency]._delay_v.push_back(currDelay);
-    }
-}
-
 GNRSOperationMessage::GNRSOperationMessage(MsgType type, UINT32 nodeIdx, UINT32 guidIdx, FLOAT64 time) {
     _type = type;
     _nodeIdx = nodeIdx;
@@ -571,13 +35,7 @@ bool GNRSOperationMessage::Callback(){
     }
     return true;
 }
-bool AS::isGNRSMember(){
-    set<UINT32>::iterator it;
-    for(it=_myNodes.begin();it!=_myNodes.end(); it++)
-        if(Underlay::Inst()->global_node_table[(*it)].isInService())
-            return true;
-    return false;
-}
+
 
 
 Underlay* Underlay::_underlay_ptr = NULL;
@@ -587,9 +45,9 @@ Underlay* Underlay::Inst() {
 	return _underlay_ptr;
 }
 
-void Underlay::CreateInst(const char* cityFile, const char* routeFile, const char* asFile) {
+void Underlay::CreateInst(const char* cityFile, const char* routeFile, const char* asFile, const char* predFile) {
 	assert( _underlay_ptr == NULL );
-	_underlay_ptr = new Underlay(cityFile, routeFile, asFile);
+	_underlay_ptr = new Underlay(cityFile, routeFile, asFile, predFile);
 }
 
 UINT32 Underlay::GetNumOfAS() {
@@ -599,10 +57,11 @@ UINT32 Underlay::GetNumOfNode() {
     return _num_of_node;
 }
 
-Underlay::Underlay(const char* cityFile, const char* routeFile, const char* asFile) {
+Underlay::Underlay(const char* cityFile, const char* routeFile, const char* asFile, const char* predFile) {
     ReadInCityInfo(cityFile);
     ReadInRoutingTable(routeFile);
     ReadInASInfo(asFile);
+    ReadInPredicate(predFile);
     InitializeNetwork();
 }
 
@@ -613,8 +72,7 @@ Underlay::~Underlay() {}
  */
 void Underlay::ReadInRoutingTable(const char* routeFile) {
     ifstream routeFileHdlr(routeFile);
-    assert(routeFileHdlr.is_open());
-    
+    assert(routeFileHdlr.is_open());    
     routeFileHdlr >> _num_of_as;
     cout<<"Total no. of AS from route file "<<_num_of_as<<endl;
     UINT32 nn = _num_of_as;
@@ -631,20 +89,27 @@ void Underlay::ReadInRoutingTable(const char* routeFile) {
 	}
     }
     //cout<<endl;
-    /*
+}
+//First line: total no. of as
+//from second line for each i to all j: predicate from asIdx i to asIdx j
+void Underlay::ReadInPredicate(const char* predFile){
+    ifstream predFileHdlr(predFile);
+    assert(predFileHdlr.is_open());
+    UINT32 nn; 
+    predFileHdlr >> nn;
+    cout<<"Total no. of AS from predicate file "<<nn<<endl;
+    assert(nn == _num_of_as);
     as_pre_matx = (UINT32*) malloc(sizeof(UINT32) * nn * nn );
     memset(as_pre_matx, 0, sizeof(UINT32) * nn * nn);
-    cout << "reading Routing table - Predicate " << endl; 
+    cout << "reading Predicate table" << endl; 
     UINT32 pred_curr;
-    for (int i=0; i < nn; i++) { //Read Predicate matrix  
-	for (int j=0; j < nn; j++){
-            routeFileHdlr >>  pred_curr; 
+    for (UINT32 i=0; i < nn; i++) { //Read Predicate matrix  
+	for (UINT32 j=0; j < nn; j++){
+            predFileHdlr >>  pred_curr; 
             as_pre_matx[i*nn + j] =  pred_curr; 	
 	}
     }
-    */
 }
-
 /*
  *first line no.ofFullAS' 'no.ofSubAS
  *as1tier' 'as1SubASno' 'pop#as1Subas1' 'pop#as1Subas2' '...

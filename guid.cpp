@@ -30,6 +30,15 @@ GUID::~GUID(){
     
 }
 
+FLOAT64 GUID::getUpdateRate(){
+    return _updateRate;
+}
+
+void GUID::setUpdateRate(FLOAT64 rate){
+    assert(rate >= 0);
+    _updateRate=rate;
+}
+
 UINT64 GUID::getPopularity(){
     return _popularity;
 }

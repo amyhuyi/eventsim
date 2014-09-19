@@ -88,9 +88,11 @@ public:
         static FLOAT32 RegionalMobilityPerc;
         static UINT32  QueryPerGUID;
         static bool DeployOnlyGW; //GUID workload only from (true) gw cities or (false) all deployed cities
-        static bool CacheOn; //issue queries per guid based on zipf popularity distribution or not
-        static FLOAT64 CachePerc; // percentage of top popular GUID each pop locally cached
+        static UINT32 CacheOn; //0: no cache; 1: cache lookup only at src; 2: cache lookup along the route
+        static FLOAT32 CachePerc; // percentage of top popular GUID each pop locally cached
+        static FLOAT32 GoThroughProb; //default go through probability for a cache entry
         static bool balanceBase; // calculate baseline of workload balance
+        static UINT32 CacheLookupLat; //cache lookup latency per hop in ms
 };
 
 typedef struct _Query_Latency{
@@ -103,13 +105,26 @@ typedef struct _Query_Latency{
 } Query_Latency;
 
 typedef struct _Query_Count{
-    UINT32 _guidIdx;
-    UINT32 _queryCnt;
+    UINT32 _guidIdx; //guid to be queried
+    UINT32 _queryCnt; // no. of queries to the target guid
     bool operator < (const struct _Query_Count& query) const
     {
         return (_queryCnt < query._queryCnt);
     }
 } Query_Count;
+
+typedef struct _Cache_Entry{
+    UINT32 _guidIdx;
+    UINT32 _timestamp; //last updated time for the guid NA mapping
+    UINT32 _createtime; //creation time of this cache entry
+    FLOAT32 _goThroughProb;
+    UINT32 _hitCount; //to determine go through or not
+    UINT32 _fromLastError; //hit count from last stale retrieval, to calculate error rate
+    FLOAT32 _errorRate; // no. of stale retrieval divided by entry's total retrieval
+    _Cache_Entry (UINT32 guidIdx, UINT32 timestmp=0, UINT32 creation=0, FLOAT32 gothrough=0.01):_guidIdx(guidIdx),
+           _timestamp(timestmp),_createtime(creation),_goThroughProb(gothrough)
+           { _hitCount=0; _errorRate=0;_fromLastError=0;}
+} Cache_Entry;
 
 typedef struct _Retry_Count{
     vector<FLOAT64> _Qdelay;
@@ -133,12 +148,15 @@ class Stat
 public:
 	static vector<UINT32> Storage_per_node; //GNRS storage overhead
         static vector<UINT32> Workload_per_node; //GNRS answer query overhead
-        static vector<UINT32> CacheWrkld_per_node; //GNRS queries answered by local cache
+        static vector<UINT32> CacheHit_per_guid; //GNRS queries answered by cache
+        static vector<UINT32> QueryHopCnt;
+        static vector<UINT32> QueryHitHopCnt;
 	static vector<Query_Latency> Query_latency_time;
         static vector<Query_Latency> Insertion_latency_time; //count for insert and update
 	static vector<Retry_Count> Retry_Cnt;//count for both insertion and query retry
         static vector<Retry_Count> DHT_RetryCnt; //all K host failed, then a DHT retry
         static vector<UINT32> Migration_per_node;
+        static vector<FLOAT32> Error_rate_per_guid; // first record the error count, then compute the rate
         /*PING overhead to maintain node table consistency
          *only record counts of extra ping during simulation
          *final process: ping counts*ping size

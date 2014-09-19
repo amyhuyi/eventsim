@@ -99,10 +99,10 @@ void Underlay::ReadInPredicate(const char* predFile){
     predFileHdlr >> nn;
     cout<<"Total no. of AS from predicate file "<<nn<<endl;
     assert(nn == _num_of_as);
-    as_pre_matx = (UINT32*) malloc(sizeof(UINT32) * nn * nn );
-    memset(as_pre_matx, 0, sizeof(UINT32) * nn * nn);
+    as_pre_matx = (int*) malloc(sizeof(int) * nn * nn );
+    memset(as_pre_matx, 0, sizeof(int) * nn * nn);
     cout << "reading Predicate table" << endl; 
-    UINT32 pred_curr;
+    int pred_curr;
     for (UINT32 i=0; i < nn; i++) { //Read Predicate matrix  
 	for (UINT32 j=0; j < nn; j++){
             predFileHdlr >>  pred_curr; 
@@ -246,7 +246,7 @@ void Underlay::InitializeNetwork(){
     }
 }
 /*
- 
+ * initialize all statistic vector (all zero element)
  */
 void Underlay::InitializeStat(){
     if (Settings::DeployOnlyGW) {
@@ -262,12 +262,11 @@ void Underlay::InitializeStat(){
             global_node_table[currNodeIdx].setInWorkload();
         }
     }
-    for (UINT32 i = 0; i < Underlay::Inst()->global_node_table.size(); i++) {
-        Stat::Migration_per_node.push_back(0);
-        Stat::Ping_per_node.push_back(0);
+    for (UINT32 i = 0; i < global_node_table.size(); i++) {
+        //Stat::Migration_per_node.push_back(0);
+        //Stat::Ping_per_node.push_back(0);
         Stat::Storage_per_node.push_back(0);
         Stat::Workload_per_node.push_back(0);
-        Stat::CacheWrkld_per_node.push_back(0);
     }
 }
 /* insert ActiveGUIDperPoP no. of guid on workload_cities
@@ -350,15 +349,24 @@ void Underlay::genOutFileName(){
     ss.str("");
     if (Settings::CacheOn) {
         strgOutName += "_CacheOn";
+        ss <<Settings::CacheOn;
+        strgOutName += ss.str();
+        ss.str("");
+        strgOutName +="_CachePerc";
         ss <<Settings::CachePerc;
         strgOutName += ss.str();
         ss.str("");
     } else {
         strgOutName += "_CacheOff";
     }
+    if (Settings::balanceBase) {
+        strgOutName += "_RandSelct";
+    } else {
+        strgOutName += "_ShortestSelct";
+    }
     Settings::outFileName = strgOutName;
-
 }
+
 void Underlay::initializeMobility(UINT32 guidIdx){
     char MobilityDegree = global_guid_list[guidIdx].getMobility();
     assert(MobilityDegree == 'L' || MobilityDegree == 'R'|| MobilityDegree == 'G');
@@ -499,7 +507,66 @@ UINT32 Underlay::migrationOverhead4Leave(UINT32 nodeIdx){
     //ToDo: count no of offline neighbors spread among my life neighbors
     return singleShare;
 }
+UINT32 Underlay::getIdxQueryLatency(FLOAT64 currTime, bool isInsertion){
+    if(isInsertion){
+        for (int i = 0; i < Stat::Insertion_latency_time.size(); i++) {
+            if (Stat::Insertion_latency_time[i]._time == currTime)
+                return i;
+        }
+    }
+    else{
+        for (int i = 0; i < Stat::Query_latency_time.size(); i++) {
+            if(Stat::Query_latency_time[i]._time == currTime)
+                return i;
+        }
+    }
+    Query_Latency aQueryLatency;
+    aQueryLatency._time = currTime;
+    aQueryLatency._delay_v.clear();
+    if(isInsertion){
+        Stat::Insertion_latency_time.push_back(aQueryLatency);
+        return (Stat::Insertion_latency_time.size()-1);
+    }
+    else{
+        Stat::Query_latency_time.push_back(aQueryLatency);
+        return (Stat::Query_latency_time.size()-1);
+    }
+}
 
+UINT32 Underlay::getIdxRetryCnt(FLOAT64 currTime, bool isDHTretry){
+    if(isDHTretry){
+        for(int i=0; i<Stat::DHT_RetryCnt.size(); i++){
+            if (Stat::DHT_RetryCnt[i]._time == currTime) {
+                return i;
+            }
+        }
+    }
+    else {
+        for(int i=0; i<Stat::Retry_Cnt.size(); i++){
+            if (Stat::Retry_Cnt[i]._time == currTime) {
+                return i;
+            }
+        }
+    }
+    Retry_Count aRetryCount;
+    aRetryCount._time = currTime;
+    aRetryCount._retryQMsg =0;
+    aRetryCount._retryQuery=0;
+    aRetryCount._retryUMsg=0;
+    aRetryCount._retryUpdate=0;
+    aRetryCount._issuedQuery=0;
+    aRetryCount._issuedUpdate=0;
+    aRetryCount._Qdelay.clear();
+    aRetryCount._Udelay.clear();
+    if(isDHTretry){
+        Stat::DHT_RetryCnt.push_back(aRetryCount);
+        return (Stat::DHT_RetryCnt.size()-1);
+    }
+    else {
+        Stat::Retry_Cnt.push_back(aRetryCount);
+        return (Stat::Retry_Cnt.size()-1);
+    }
+}
 void Underlay::getQueryNodesPerLoc(FLOAT32 lat1, FLOAT32 lon1, UINT32 totalNo, vector<UINT32>& _queryNodes, vector<UINT32>& _queryQuota, FLOAT32 exponent){
     FLOAT32 totalWeight=0;
     FLOAT32 lat2, lon2;
@@ -630,9 +697,7 @@ void Underlay::getQueryNodes(UINT32 guidIdx, vector<UINT32>& _queryNodes, vector
             currWeight = (weight_q[i]/totalWeight)*Settings::QueryPerGUID;
             getQueryNodesPerLoc(lat1, lon1, currWeight, _queryNodes, _queryQuota, exponent);
         }
-    }
-    
-    
+    }   
     //debug
     cout<<"exponent"<<exponent<<" popularity "<<global_guid_list[guidIdx].getPopularity()<<" query nodes: "<<_queryNodes.size();
         for (int i = 0; i < _queryQuota.size(); i++) {
@@ -687,104 +752,133 @@ FLOAT32 Underlay::genLocalityExponent(){
     }
     return exponent;
 }
+/* get the path between srcAS index to destAS index*/
+/* only intermediate as, not include src or dst as*/
+void Underlay::getShortestPath(UINT32 srcAS, UINT32 destAS, vector<UINT32> &pathContainer) {
+    pathContainer.clear();
+    UINT32 as_index = as_v.size();
+    int _intermediate = as_pre_matx[srcAS*as_index + destAS];
+    //pathContainer.insert(pathContainer.begin(), destAS);	
+    //loop until reach the destination or reach itself
+    while ((_intermediate != srcAS) && (_intermediate != -1)){
+	pathContainer.insert(pathContainer.begin(), (UINT32)_intermediate);
+	_intermediate = as_pre_matx[srcAS*as_index + _intermediate];
+    }
+    //pathContainer.insert(pathContainer.begin(),srcAS);
+}
+/*
+ calculate cache lookup latency overhead for a query
+ */
+UINT32 Underlay::calCacheLatOverhead(vector<UINT32> pathASIdx, UINT32 hitNodeIdx){
+    UINT32 hopCount=100; //100 means hit at source
+    UINT32 hitASIdx = global_node_table[hitNodeIdx].getASIdx();
+    for (int i = 0; i < pathASIdx.size(); i++) {
+        if (pathASIdx[i] == hitASIdx) {
+            if (i!=(pathASIdx.size()-1)) {
+                hopCount = i+1;
+            } else {
+                hopCount = 101; //101 means hit at dst
+            }
+            break;
+        }
+    }
+    Stat::QueryHitHopCnt.push_back(hopCount); //record how many queries hit cache in the middle of the route
+    return (hopCount*Settings::CacheLookupLat);
+}
+
 /*
  the query workload is updated in calQueryDelay ()
  return this query latency
  */
 FLOAT64 Underlay::calSingleQueryWrkld(UINT64 currGUIDIdx, UINT32 currNodeIdx){
-    set<UINT32> localHostset; // local AS determined host set
-    set<UINT32> globalHostset; //global determined host set
-    determineHost(currGUIDIdx, globalHostset,localHostset,currNodeIdx);
-    set<UINT32>::iterator it;
-    vector<UINT32> correctHost,onlyInlocal,onlyInglobal;
-    for(it=localHostset.begin();it!=localHostset.end();++it){
-        if(globalHostset.find((*it))!=globalHostset.end())
-            correctHost.push_back((*it));
-        else
-            onlyInlocal.push_back((*it));
-    }
-    for (it = globalHostset.begin(); it != globalHostset.end(); ++it) {
-        if (localHostset.find((*it))== localHostset.end())
-            onlyInglobal.push_back((*it));
-    }
+    vector<UINT32> queryPathAS, queryPathNode;
+    UINT32 dstReplicahost, randNum, hitNode;
+    UINT32 currTS =0, cacheLat=0;
+    FLOAT64 minDistance;
     if (Settings::balanceBase) {
-        return global_node_table[currNodeIdx].calQueryDelayRandomSelection(correctHost);
+        randNum = Util::Inst()->GenInt(global_guid_list[currGUIDIdx]._replica_hosts.size());
+        dstReplicahost = global_guid_list[currGUIDIdx]._replica_hosts[randNum];
+        minDistance = getLatency(currNodeIdx,dstReplicahost);
     } else {
-        return global_node_table[currNodeIdx].calQueryDelay(onlyInlocal, onlyInglobal, correctHost);   
+        minDistance = global_node_table[currNodeIdx].getMinDistance(global_guid_list[currGUIDIdx]._replica_hosts,dstReplicahost);   
     }
+    if (Settings::CacheOn==0) {   
+        //cout<<"Cache off \n";
+        Stat::Workload_per_node[dstReplicahost]++;
+        return minDistance*2;
+    } else if(Settings::CacheOn==1){
+        //cout<<"Cache lookup only at src \n";
+        queryPathNode.clear();
+        queryPathNode.push_back(dstReplicahost);
+    }
+    else{
+        //cout<<"Cache lookup along the route \n";
+        getShortestPath(global_node_table[currNodeIdx].getASIdx(), global_node_table[dstReplicahost].getASIdx(),queryPathAS);
+        queryPathNode.clear();
+        for (int i = 0; i < queryPathAS.size(); i++) {
+            Stat::QueryHopCnt.push_back(queryPathAS.size());
+            randNum = Util::Inst()->GenInt(as_v[queryPathAS[i]]._myNodes.size());
+            set <UINT32>::iterator it = as_v[queryPathAS[i]]._myNodes.begin();
+            std::advance(it, randNum);
+            queryPathNode.push_back((*it));
+        }
+        queryPathNode.push_back(dstReplicahost);
+    }
+    hitNode= global_node_table[currNodeIdx].cacheLookup(currGUIDIdx, currTS, queryPathNode,false);
+    cacheLat = calCacheLatOverhead(queryPathAS,hitNode);
+    minDistance = getLatency(currNodeIdx,hitNode);
+    //return (minDistance*2 + cacheLat);
+    return minDistance*2;
 }
 void Underlay::calQueryWorkload(){
     assert(Stat::Workload_per_node.size() == global_node_table.size());
-    assert(Stat::CacheWrkld_per_node.size() == Stat::Workload_per_node.size());
-    for (int i = 0; i < Stat::Workload_per_node.size(); i++) {
-        Stat::Workload_per_node[i]=0;
-        Stat::CacheWrkld_per_node[i]=0;
-    }
+    assert(Stat::CacheHit_per_guid.size() == global_guid_list.size());
     for (UINT32 i = 0; i < global_node_table.size(); i++) {
-        global_node_table[i]._queryWrkld_v.clear();
+        global_node_table[i]._queryWrkld_v.clear();     
     }
-    vector<UINT32> queryNodes; 
-    vector<UINT32> queryQuota,totalQuota_v;
+    vector<UINT32> queryNodes;
+    vector<UINT32> queryQuota,queryIssuer_v;
     vector<UINT32> delay_results_v;
-    FLOAT32 exponent;
-    for (UINT32 currGUIDIdx = 0; currGUIDIdx < global_guid_list.size(); currGUIDIdx++) {
-        //debug
-        /*if (global_guid_list[currGUIDIdx].getPopularity()<10) {
-            exponent = -0.8;
-        } else {
-            exponent = genLocalityExponent();
-        }
-        getQueryNodesByPoP(currGUIDIdx,queryNodes,queryQuota,exponent);*/
+    UINT32 randNum, randNum2, currGUIDIdx, currQNodeIdx;
+    for (currGUIDIdx = 0; currGUIDIdx < global_guid_list.size(); currGUIDIdx++) {
         getQueryNodesByPoP(currGUIDIdx,queryNodes,queryQuota,0);
-        assert(queryNodes.size()==queryQuota.size());
-        for (UINT32 i = 0; i< queryNodes.size(); i++) {
-            totalQuota_v.push_back(queryQuota[i]);
-        }
     }
     for (UINT32 i = 0;  i<global_node_table.size(); i++) {
-        sort(global_node_table[i]._queryWrkld_v.begin(), global_node_table[i]._queryWrkld_v.end());
-        for (UINT32 j = 0; j < global_node_table[i]._queryWrkld_v.size(); j++) {
-            //debug
-            cout<<"\n node idx "<<i<<" has queries to " <<global_node_table[i]._queryWrkld_v.size()<< " guids \n"; 
-            if (!Settings::CacheOn || j<global_node_table[i]._queryWrkld_v.size()*(1-Settings::CachePerc)) {
-                for (UINT32 k = 0; k < global_node_table[i]._queryWrkld_v[j]._queryCnt; k++) {
-                    delay_results_v.push_back((UINT32)calSingleQueryWrkld(global_node_table[i]._queryWrkld_v[j]._guidIdx, i));
-                }
-            } else {
-                delay_results_v.push_back((UINT32)calSingleQueryWrkld(global_node_table[i]._queryWrkld_v[j]._guidIdx, i));
-                Stat::CacheWrkld_per_node[i] += (global_node_table[i]._queryWrkld_v[j]._queryCnt-1);
-            }
-            cout<<global_node_table[i]._queryWrkld_v[j]._queryCnt<<",";
+        if (global_node_table[i]._queryWrkld_v.size()) {
+            queryIssuer_v.push_back(i);
         }
     }
-
-    //sort(Stat::Workload_per_node.begin(),Stat::Workload_per_node.end());
+    while (queryIssuer_v.size()) {
+        randNum = Util::Inst()->GenInt(queryIssuer_v.size());
+        currQNodeIdx = queryIssuer_v[randNum];
+        randNum2 = Util::Inst()->GenInt(global_node_table[currQNodeIdx]._queryWrkld_v.size());
+        currGUIDIdx = global_node_table[currQNodeIdx]._queryWrkld_v[randNum2]._guidIdx;
+        delay_results_v.push_back((UINT32)calSingleQueryWrkld(currGUIDIdx, currQNodeIdx));
+        if ((-- global_node_table[currQNodeIdx]._queryWrkld_v[randNum2]._queryCnt)==0) {
+            global_node_table[currQNodeIdx]._queryWrkld_v.erase(global_node_table[currQNodeIdx]._queryWrkld_v.begin()+randNum2);
+        }
+        if (global_node_table[currQNodeIdx]._queryWrkld_v.size()==0) {
+            queryIssuer_v.erase(queryIssuer_v.begin()+randNum);
+        }     
+    }
+    sort(Stat::Workload_per_node.begin(),Stat::Workload_per_node.end());
     string strgOutName = Settings::outFileName;
-    //debug
-    //cout<<"Workload cities \n";
-    //for (UINT32 i = 0; i < workload_cities.size(); i++)
-        //cout<<city_list[workload_cities[i]].getCity()<<","<<city_list[workload_cities[i]].getState()<<","<<city_list[workload_cities[i]].getCountry()<<endl;
-
     UINT32 unitQuryWrkld = 1;
-    bool setUnit= false;
+    if (Stat::Workload_per_node[Stat::Workload_per_node.size()/2]) {
+        unitQuryWrkld = Stat::Workload_per_node[Stat::Workload_per_node.size()/2];
+    }
+    cout<<"unitQuryWrkld: "<<unitQuryWrkld<<endl;
     //debug
     for (int i = 0; i < Stat::Workload_per_node.size(); i++) {
-        //if (!setUnit && Stat::Workload_per_node[i] !=0) {
-            //unitQuryWrkld = Stat::Workload_per_node[i];
-            //setUnit = true;
-        //}
-        cout<<Stat::Workload_per_node[i]<<" is Q workload at node "<<i<<endl;
         Stat::Workload_per_node[i] = Stat::Workload_per_node[i]/unitQuryWrkld;
     }
     strgOutName = Settings::outFileName + "_QWrkld_cdf";
     Util::Inst()->genCDF(strgOutName.c_str(),Stat::Workload_per_node);
-    //strgOutName = Settings::outFileName + "_queryQuota_cdf";
-    //Util::Inst()->genCDF(strgOutName.c_str(),totalQuota_v);
     strgOutName = Settings::outFileName + "_qLatency_cdf";
     Util::Inst()->genCDF(strgOutName.c_str(),delay_results_v);
     if (Settings::CacheOn) {
-        strgOutName = Settings::outFileName + "_cacheWrkld_cdf";
-        Util::Inst()->genCDF(strgOutName.c_str(),Stat::CacheWrkld_per_node);
+        strgOutName = Settings::outFileName + "_cacheHitPerguid_cdf";
+        Util::Inst()->genCDF(strgOutName.c_str(),Stat::CacheHit_per_guid);
     }
     vector<FLOAT64> ratio_workload;
     for (int i = 0; i < Stat::Workload_per_node.size(); i++) {
@@ -793,6 +887,12 @@ void Underlay::calQueryWorkload(){
     }
     strgOutName = Settings::outFileName + "_ratioOfQSWrkld_cdf";
     Util::Inst()->genCDF(strgOutName.c_str(),ratio_workload);
+    if (Settings::CacheOn==2) {
+        strgOutName = Settings::outFileName + "_QhopCnt_cdf";
+        Util::Inst()->genCDF(strgOutName.c_str(),Stat::QueryHopCnt);
+        strgOutName = Settings::outFileName + "_QHitHopCnt_cdf";
+        Util::Inst()->genCDF(strgOutName.c_str(),Stat::QueryHitHopCnt); 
+    }
 }
 /*
  generate query workload: independent of update
@@ -1087,15 +1187,17 @@ void Underlay::determineHost(UINT32 guidIdx, set<UINT32>& glbCalHostSet, set<UIN
         determineLocalHost(guidIdx,lclCalHostSet,asIdx);
     }
 }
-
-void Underlay::calStorageWorkload(){
+//calculate global replica host
+//calculate storage workload per node
+//To do: initialize other cache related parameters of guid
+void Underlay::PrepareWorkloadCal(){
     assert(Stat::Storage_per_node.size() == global_node_table.size());
-    for (int i = 0; i < Stat::Storage_per_node.size(); i++) {
-        Stat::Storage_per_node[i]=0;
-    }
     set<UINT32> glbCalHostSet;
     for (UINT64 guidIdx = 0; guidIdx < global_guid_list.size(); guidIdx++) {
+        Stat::Error_rate_per_guid.push_back(0);
+        Stat::CacheHit_per_guid.push_back(0);
         glbCalHostSet.clear();
+        global_guid_list[guidIdx]._replica_hosts.clear();
         if(Settings::GNRS_K){
             determineGlobalHost(guidIdx,glbCalHostSet,-1);
         }
@@ -1105,21 +1207,26 @@ void Underlay::calStorageWorkload(){
         if(Settings::Local_K){
             determineLocalHost(guidIdx,glbCalHostSet,-1);
         }
-        for (set<UINT32>::iterator it=glbCalHostSet.begin(); it!=glbCalHostSet.end(); ++it)
+        for (set<UINT32>::iterator it=glbCalHostSet.begin(); it!=glbCalHostSet.end(); ++it){
+            global_guid_list[guidIdx]._replica_hosts.push_back(*it);
             Stat::Storage_per_node[*it]++;
+        }
     }
+}
+
+void Underlay::calStorageWorkload(){
+    assert(Stat::Storage_per_node.size() == global_node_table.size());
     sort(Stat::Storage_per_node.begin(),Stat::Storage_per_node.end());
     string strgOutName = Settings::outFileName;
     //debug
     //cout<<"storage per node \n";
-    UINT32 unitStrWrkld = 1;
-    bool setUnit= false;
+    UINT32 unitStrWrkld = Stat::Storage_per_node[Stat::Storage_per_node.size()/2];
+    if (unitStrWrkld==0) {
+        unitStrWrkld =1;
+    }
+    cout<<"unitStrWrkld ="<<unitStrWrkld<<endl;
     for (int i = 0; i < Stat::Storage_per_node.size(); i++) {
         //cout<<Stat::Storage_per_node[i]<<endl;
-        if (!setUnit && Stat::Storage_per_node[i] !=0) {
-            unitStrWrkld = Stat::Storage_per_node[i];
-            setUnit = true;
-        }
         Stat::Storage_per_node[i] = Stat::Storage_per_node[i]/unitStrWrkld;
     }
     strgOutName +="_normStrg";

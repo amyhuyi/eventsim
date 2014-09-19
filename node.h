@@ -22,11 +22,11 @@ private:
     bool _in_workload; //in workload_cities or not
     UINT32 _asIdx;
     FLOAT64 _last_update_time;
-    FLOAT64 getMaxDistance(vector<UINT32> correctHost);
-    FLOAT64 getMinDistance(vector<UINT32> correctHost, UINT32 & dstNodeIdx);
+    
 public:
     UINT32 _hashID; //hash value of the node in GNRS space, uniquely identify a node
     vector<Query_Count> _queryWrkld_v;
+    vector<Cache_Entry> _cache;
     Node (UINT32 hashID, UINT32 asIdx, FLOAT64 time);
     ~Node();
     bool isInService();
@@ -40,6 +40,8 @@ public:
     void setNodeIdx( UINT32 index);
     void setCityIdx( UINT32 index);
     UINT32 getCityIdx();
+    FLOAT64 getMaxDistance(vector<UINT32> correctHost);
+    FLOAT64 getMinDistance(vector<UINT32> correctHost, UINT32 & dstNodeIdx);
     FLOAT64 calInsertDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost);
     FLOAT64 calQueryDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglobal, vector<UINT32> correctHost);
     FLOAT64 calQueryDelayRandomSelection(vector<UINT32> correctHost);
@@ -47,6 +49,7 @@ public:
     bool queryGUID(UINT32 guid, FLOAT64 time);
     bool updateGUID(UINT32 guid, FLOAT64 time);
     void calCorrectHost(set<UINT32> localHostset, set<UINT32> globalHostset, char opt);
+    UINT32 cacheLookup(UINT32 guidIdx, UINT32 & myTimestamp, vector<UINT32>& remainNodePath, bool staleFlag); //return the hit nodeIdx
 };
 bool NodeSortPredicate( const Node d1, const Node d2);
 

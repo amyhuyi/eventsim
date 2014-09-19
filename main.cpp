@@ -9,15 +9,18 @@
 vector<UINT32> Stat::Ping_per_node;
 vector<UINT32> Stat::Storage_per_node; //GNRS storage overhead
 vector<UINT32> Stat::Workload_per_node; //GNRS answer query overhead
-vector<UINT32> Stat::CacheWrkld_per_node;
+vector<UINT32> Stat::CacheHit_per_guid;
+vector<UINT32> Stat::QueryHopCnt;
+vector<UINT32> Stat::QueryHitHopCnt;
 vector<Query_Latency> Stat::Query_latency_time;
 vector<Query_Latency> Stat::Insertion_latency_time;
 vector<Retry_Count> Stat::Retry_Cnt;
 vector<Retry_Count> Stat::DHT_RetryCnt;
+vector<FLOAT32> Stat::Error_rate_per_guid; 
 vector<UINT32> Stat::Migration_per_node;
 UINT32 Stat::Premature_joins=0;
 UINT32 Stat::Premature_leaves=0;
-
+UINT32 Settings::CacheLookupLat =0;
 FLOAT64 Settings::EndTime = 50;
 FLOAT64 Settings::TestThreshold = 0.1;
 UINT32 Settings::TotalVirtualGUID = 1000000000;
@@ -36,7 +39,7 @@ FLOAT64 Settings::QueryPerNode = 10000;
 FLOAT64 Settings::UpdatePerNode = 1000;
 string Settings::outFileName;
 FLOAT64 Settings::ChurnPerNode=0.01;
-bool Settings::Geo_Lat_On = true;
+bool Settings::Geo_Lat_On = false;
 bool Settings::LocMobSync = true;
 UINT32 Settings::QueryPerGUID = 200;
 FLOAT32 Settings::InterLatWeight = 0.0;
@@ -46,9 +49,10 @@ FLOAT32 Settings::MedLocalityPerc = 0.3;
 FLOAT32 Settings::LocalMobilityPerc = 0.6;
 FLOAT32 Settings::RegionalMobilityPerc =0.2;
 bool Settings::DeployOnlyGW = 0;
-bool Settings::CacheOn =0;
+UINT32 Settings::CacheOn =0;
 bool Settings::balanceBase =0;
-FLOAT64 Settings::CachePerc = 0.1;
+FLOAT32 Settings::CachePerc = 0.1;
+FLOAT32 Settings::GoThroughProb = 0.001;
 /*!
  *  @brief Computes floor(log2(n))
  *  Works by finding position of MSB set.
@@ -239,11 +243,16 @@ void ParseArg(const char * argv)
 	ss <<arg.substr(11);
 	ss >>Settings::DeployOnlyGW;
     }
-    else if (arg.find("cacheon=") != string::npos)
+    else if (arg.find("cacheon=") != string::npos) {
+        stringstream ss(stringstream::in | stringstream::out);
+        ss << arg.substr(8);
+        ss >> Settings::CacheOn;
+    }
+    else if (arg.find("cachelookuplat=") != string::npos)
     {
 	stringstream ss (stringstream::in | stringstream::out);
-	ss <<arg.substr(8);
-	ss >>Settings::CacheOn;
+	ss <<arg.substr(15);
+	ss >>Settings::CacheLookupLat;
     }
     else if (arg.find("balancebase=") != string::npos)
     {
@@ -256,6 +265,12 @@ void ParseArg(const char * argv)
 	stringstream ss (stringstream::in | stringstream::out);
 	ss <<arg.substr(10);
 	ss >>Settings::CachePerc;
+    }
+    else if (arg.find("gothroughprob=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(14);
+	ss >>Settings::GoThroughProb;
     }
 }
 
@@ -299,6 +314,8 @@ int main(int argc, const char* argv[])
     cout<<"Settings::RegionalMobilityPerc="<<Settings::RegionalMobilityPerc<<endl;
     cout<<"Settings::QueryPerGUID="<<Settings::QueryPerGUID<<endl;
     cout<<"Settings::CachePerc="<<Settings::CachePerc<<endl;
+    cout<<"Settings::CacheOn="<<Settings::CacheOn<<endl;
+    cout<<"Settings::CacheLookupLat="<<Settings::CacheLookupLat<<endl;
     if (Settings::Geo_Lat_On) {
         cout<<"Settings::Geo_Lat_On = true"<<endl;
     } else {
@@ -314,18 +331,15 @@ int main(int argc, const char* argv[])
     } else {
         cout<<"Settings::DeployOnlyGW = false"<<endl;
     }
-    if (Settings::CacheOn) {
-        cout<<"Settings::CacheOn = true"<<endl;
-    } else {
-        cout<<"Settings::CacheOn = false"<<endl;
-    }
     if (Settings::balanceBase) {
         cout<<"Settings::balanceBase = true"<<endl;
     } else {
         cout<<"Settings::balanceBase = false"<<endl;
     }
-    Underlay::Inst()->InitializeStat();
-    Underlay::Inst()->InitializeWorkload();
+    Underlay::Inst()->InitializeStat(); //finish node initialization, prepare node stat
+    Underlay::Inst()->InitializeWorkload(); //finish guid init   
+    Underlay::Inst()->PrepareWorkloadCal(); //prepare all guid stat
+    
     
     UINT32 totalNodes = Underlay::Inst()->global_node_table.size();
     Underlay::Inst()->calStorageWorkload();

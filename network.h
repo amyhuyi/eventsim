@@ -34,7 +34,7 @@ private:
     UINT32 _num_of_as;
     UINT32 _num_of_node;
     UINT32 *as_dist_matx;           //shortest distance matrix
-    UINT32 *as_pre_matx;             //predicate matrix for path recompute: the last hop to reach destination
+    int *as_pre_matx;             //predicate matrix for path recompute: the last hop to reach destination
     Underlay(const char* cityFile, const char* routeFile, const char* asFile, const char* predFile);
     bool isAvailable(UINT32 nodeIdx, int asIdx); //check node availability from global or local AS view
     void determineLocalHost(UINT32 guidIdx, set<UINT32>& _hostNodeIdx, int asIdx);
@@ -49,6 +49,8 @@ private:
     FLOAT64 calSingleQueryWrkld (UINT64 currGUIDIdx, UINT32 currNodeIdx); //return this query latency
     FLOAT32 genLocalityExponent();
     void genOutFileName();
+    void getShortestPath(UINT32 srcAS, UINT32 destAS, vector<UINT32> &pathContainer);
+    UINT32 calCacheLatOverhead(vector<UINT32> pathASIdx, UINT32 hitNodeIdx);
 public:
     UINT32 getvpHostIdx(UINT32 guid, UINT32 start_idx, UINT32 end_idx);
     vector<Node> global_node_table; //sorted based on node ID
@@ -71,6 +73,7 @@ public:
     void InitializeNetwork(); //assign nodes to each AS based on capacity
     void InitializeStat();
     void InitializeWorkload();//create GUID insertion workload (among gw city or all deployed cities)
+    void PrepareWorkloadCal();//preparation work to assist storage and query workload calculation
     UINT32 generateQueryWorkload(FLOAT64 mean_arrival);
     UINT32 generateUpdateWorkload(FLOAT64 mean_arrival);
     UINT32 generateLeaveChurn(UINT32 churnLength, FLOAT64 mean_arrival, FLOAT64 sessionTime, UINT32 onOffTimes);

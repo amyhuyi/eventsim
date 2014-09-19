@@ -84,66 +84,6 @@ void AS::downgradeGNRS(UINT32 nodeIdx, FLOAT64 arrival_time,FLOAT64 offtime, UIN
 } //downgrade GNRS membership: remove one of my nodes from service
 
 
-UINT32 Underlay::getIdxQueryLatency(FLOAT64 currTime, bool isInsertion){
-    if(isInsertion){
-        for (int i = 0; i < Stat::Insertion_latency_time.size(); i++) {
-            if (Stat::Insertion_latency_time[i]._time == currTime)
-                return i;
-        }
-    }
-    else{
-        for (int i = 0; i < Stat::Query_latency_time.size(); i++) {
-            if(Stat::Query_latency_time[i]._time == currTime)
-                return i;
-        }
-    }
-    Query_Latency aQueryLatency;
-    aQueryLatency._time = currTime;
-    aQueryLatency._delay_v.clear();
-    if(isInsertion){
-        Stat::Insertion_latency_time.push_back(aQueryLatency);
-        return (Stat::Insertion_latency_time.size()-1);
-    }
-    else{
-        Stat::Query_latency_time.push_back(aQueryLatency);
-        return (Stat::Query_latency_time.size()-1);
-    }
-}
-
-UINT32 Underlay::getIdxRetryCnt(FLOAT64 currTime, bool isDHTretry){
-    if(isDHTretry){
-        for(int i=0; i<Stat::DHT_RetryCnt.size(); i++){
-            if (Stat::DHT_RetryCnt[i]._time == currTime) {
-                return i;
-            }
-        }
-    }
-    else {
-        for(int i=0; i<Stat::Retry_Cnt.size(); i++){
-            if (Stat::Retry_Cnt[i]._time == currTime) {
-                return i;
-            }
-        }
-    }
-    Retry_Count aRetryCount;
-    aRetryCount._time = currTime;
-    aRetryCount._retryQMsg =0;
-    aRetryCount._retryQuery=0;
-    aRetryCount._retryUMsg=0;
-    aRetryCount._retryUpdate=0;
-    aRetryCount._issuedQuery=0;
-    aRetryCount._issuedUpdate=0;
-    aRetryCount._Qdelay.clear();
-    aRetryCount._Udelay.clear();
-    if(isDHTretry){
-        Stat::DHT_RetryCnt.push_back(aRetryCount);
-        return (Stat::DHT_RetryCnt.size()-1);
-    }
-    else {
-        Stat::Retry_Cnt.push_back(aRetryCount);
-        return (Stat::Retry_Cnt.size()-1);
-    }
-}
 bool AS::isGNRSMember(){
     set<UINT32>::iterator it;
     for(it=_myNodes.begin();it!=_myNodes.end(); it++)

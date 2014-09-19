@@ -301,4 +301,56 @@ void Node::calCorrectHost(set<UINT32> localHostset, set<UINT32> globalHostset, c
         Stat::Query_latency_time[idxLatency]._delay_v.push_back(currDelay);
     }
 }
-
+/*
+ * receiving a query, lookup cache, update cache when necessary (LRU update, or go through update)
+ * staleFlag is to simulate stale cache enforced query
+ * return the hit nodeIdx 
+ */
+UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& remainNodePath, bool staleFlag){
+    Stat::Workload_per_node[_nodeIdx]++;
+    UINT32 correctTimeStamp = (UINT32) Underlay::Inst()->global_guid_list[guidIdx].getLastUpdateTime();
+    if (remainNodePath.size()==0) { //hit the replica host
+        myTimestamp = correctTimeStamp;
+        return _nodeIdx;
+    }
+    UINT32 hitNodeIdx, nextHopNodeIdx;
+    nextHopNodeIdx = remainNodePath[0];
+    remainNodePath.erase(remainNodePath.begin());
+    for (UINT32 i = 0; i < _cache.size(); i++) {//lookup my cache
+        if (_cache[i]._guidIdx == guidIdx) { //cache hit
+            _cache[i]._fromLastError++;
+            _cache[i]._hitCount++;
+            if (_cache[i]._goThroughProb*_cache[i]._hitCount >=1) {
+                hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath,false);
+                _cache[i]._timestamp = myTimestamp;
+                _cache[i]._hitCount=0;
+                return hitNodeIdx;
+            }else{
+                if (_cache[i]._timestamp < correctTimeStamp) {
+                    cout<<"Stale Cache\n";
+                    if (!staleFlag) {
+                        Stat::Error_rate_per_guid[guidIdx]++;
+                    }
+                    hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath, true);
+                    _cache[i]._timestamp = myTimestamp;
+                    _cache[i]._errorRate = 1.00/(FLOAT32)_cache[i]._fromLastError;
+                    _cache[i]._fromLastError =0;
+                    _cache[i]._goThroughProb = _cache[i]._goThroughProb*2;
+                    return hitNodeIdx;
+                } else{
+                    myTimestamp = _cache[i]._timestamp;
+                    Stat::CacheHit_per_guid[guidIdx]++;
+                    return _nodeIdx;
+                }              
+            }
+        }
+    }
+    //cache miss
+    hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath,false);
+    Cache_Entry currCacheEntry (guidIdx, myTimestamp, 0, Settings::GoThroughProb);
+    if (_cache.size() >= Settings::CachePerc*Underlay::Inst()->global_guid_list.size()) {
+        _cache.erase(_cache.begin()); //creation time can be handled here
+    } 
+    _cache.push_back(currCacheEntry);
+    return hitNodeIdx;
+}

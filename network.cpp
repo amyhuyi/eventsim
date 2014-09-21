@@ -347,11 +347,22 @@ void Underlay::genOutFileName(){
     ss <<Settings::Local_K;
     strgOutName += ss.str();
     ss.str("");
+    if (Settings::DeployOnlyGW) {
+        strgOutName += "_DeployGW";  
+    } else {
+        strgOutName += "_DeployAll";
+    }
     if (Settings::CacheOn) {
         strgOutName += "_CacheOn";
         ss <<Settings::CacheOn;
         strgOutName += ss.str();
         ss.str("");
+        if (Settings::CacheOn==2) {
+            strgOutName += "_GoThru";
+            ss <<Settings::GoThroughProb;
+            strgOutName += ss.str();
+            ss.str("");
+        }
         strgOutName +="_CachePerc";
         ss <<Settings::CachePerc;
         strgOutName += ss.str();
@@ -603,7 +614,7 @@ void Underlay::getQueryNodesByPoP(UINT32 guidIdx, vector<UINT32>& _queryNodes, v
     _queryQuota.clear();
     UINT64 totalNo = global_guid_list[guidIdx].getPopularity();
     set<UINT32> selected_cities;
-    UINT32 randNum, randNum2;
+    UINT32 randNum, randNum2, candidateNo;
     UINT32 cityIdx = global_node_table[global_guid_list[guidIdx].getCurrAddrNodeIdx()].getCityIdx();
     string currCountry = city_list[cityIdx].getCountry();
     if (exponent < -0.5) {
@@ -618,7 +629,13 @@ void Underlay::getQueryNodesByPoP(UINT32 guidIdx, vector<UINT32>& _queryNodes, v
         }
     }
     else {
-        for (int i = 0; i < workload_cities.size(); i++) {
+        if (totalNo < (workload_cities.size()*0.9)) {
+            candidateNo = totalNo;
+        } else {
+            candidateNo = (workload_cities.size()*0.9);
+        }
+
+        for (UINT32 i = 0; i < candidateNo; i++) {
             randNum = Util::Inst()->GenInt(workload_cities.size());
             while (selected_cities.find(randNum) != selected_cities.end()) {
                 randNum = Util::Inst()->GenInt(workload_cities.size());

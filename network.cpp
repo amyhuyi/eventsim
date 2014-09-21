@@ -618,7 +618,7 @@ void Underlay::getQueryNodesByPoP(UINT32 guidIdx, vector<UINT32>& _queryNodes, v
         }
     }
     else {
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; i < workload_cities.size(); i++) {
             randNum = Util::Inst()->GenInt(workload_cities.size());
             while (selected_cities.find(randNum) != selected_cities.end()) {
                 randNum = Util::Inst()->GenInt(workload_cities.size());
@@ -769,19 +769,27 @@ void Underlay::getShortestPath(UINT32 srcAS, UINT32 destAS, vector<UINT32> &path
 /*
  calculate cache lookup latency overhead for a query
  */
-UINT32 Underlay::calCacheLatOverhead(vector<UINT32> pathASIdx, UINT32 hitNodeIdx){
-    UINT32 hopCount=100; //100 means hit at source
-    UINT32 hitASIdx = global_node_table[hitNodeIdx].getASIdx();
-    for (int i = 0; i < pathASIdx.size(); i++) {
-        if (pathASIdx[i] == hitASIdx) {
-            if (i!=(pathASIdx.size()-1)) {
-                hopCount = i+1;
+UINT32 Underlay::calCacheLatOverhead(vector<UINT32> pathNodeIdx, UINT32 hitNodeIdx){
+    UINT32 hopCount=102; //102 means no hit
+    for (int i = 0; i < pathNodeIdx.size(); i++) {
+        if (pathNodeIdx[i] == hitNodeIdx) {
+            if (i!=(pathNodeIdx.size()-1)) {
+                hopCount = i;
             } else {
                 hopCount = 101; //101 means hit at dst
             }
             break;
         }
     }
+    //debug
+    if (hopCount == 102) {
+        cout<<"No hit query: hit nodeIdx= "<<hitNodeIdx<<". Route info:";
+        for (int i = 0; i < pathNodeIdx.size(); i++) {
+            cout<<pathNodeIdx[i]<<",";
+        }
+        cout<<endl;
+    }
+
     Stat::QueryHitHopCnt.push_back(hopCount); //record how many queries hit cache in the middle of the route
     return (hopCount*Settings::CacheLookupLat);
 }
@@ -791,7 +799,7 @@ UINT32 Underlay::calCacheLatOverhead(vector<UINT32> pathASIdx, UINT32 hitNodeIdx
  return this query latency
  */
 FLOAT64 Underlay::calSingleQueryWrkld(UINT64 currGUIDIdx, UINT32 currNodeIdx){
-    vector<UINT32> queryPathAS, queryPathNode;
+    vector<UINT32> queryPathAS, queryPathNode, debugQueryPathNode;
     UINT32 dstReplicahost, randNum, hitNode;
     UINT32 currTS =0, cacheLat=0;
     FLOAT64 minDistance;
@@ -823,9 +831,11 @@ FLOAT64 Underlay::calSingleQueryWrkld(UINT64 currGUIDIdx, UINT32 currNodeIdx){
             queryPathNode.push_back((*it));
         }
         queryPathNode.push_back(dstReplicahost);
+        debugQueryPathNode = queryPathNode;
+        debugQueryPathNode.insert(debugQueryPathNode.begin(), currNodeIdx);
     }
     hitNode= global_node_table[currNodeIdx].cacheLookup(currGUIDIdx, currTS, queryPathNode,false);
-    cacheLat = calCacheLatOverhead(queryPathAS,hitNode);
+    cacheLat = calCacheLatOverhead(debugQueryPathNode,hitNode);
     minDistance = getLatency(currNodeIdx,hitNode);
     //return (minDistance*2 + cacheLat);
     return minDistance*2;

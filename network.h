@@ -50,7 +50,7 @@ private:
     FLOAT32 genLocalityExponent();
     void genOutFileName();
     void getShortestPath(UINT32 srcAS, UINT32 destAS, vector<UINT32> &pathContainer);
-    UINT32 calCacheLatOverhead(vector<UINT32> pathASIdx, UINT32 hitNodeIdx);
+    UINT32 calCacheLatOverhead(vector<UINT32> pathNodeIdx, UINT32 hitNodeIdx);
 public:
     UINT32 getvpHostIdx(UINT32 guid, UINT32 start_idx, UINT32 end_idx);
     vector<Node> global_node_table; //sorted based on node ID

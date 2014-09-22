@@ -8,7 +8,7 @@
 //default setting
 vector<UINT32> Stat::Ping_per_node;
 vector<UINT32> Stat::Storage_per_node; //GNRS storage overhead
-vector<UINT32> Stat::Workload_per_node; //GNRS answer query overhead
+vector<FLOAT64> Stat::Workload_per_node; //GNRS answer query overhead
 vector<UINT32> Stat::CacheHit_per_guid;
 vector<UINT32> Stat::QueryHopCnt;
 vector<UINT32> Stat::QueryHitHopCnt;
@@ -316,6 +316,7 @@ int main(int argc, const char* argv[])
     cout<<"Settings::CachePerc="<<Settings::CachePerc<<endl;
     cout<<"Settings::CacheOn="<<Settings::CacheOn<<endl;
     cout<<"Settings::CacheLookupLat="<<Settings::CacheLookupLat<<endl;
+    cout<<"Settings::GoThroughProb="<<Settings::GoThroughProb<<endl;
     if (Settings::Geo_Lat_On) {
         cout<<"Settings::Geo_Lat_On = true"<<endl;
     } else {

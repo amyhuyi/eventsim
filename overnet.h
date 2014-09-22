@@ -147,7 +147,7 @@ class Stat
 {
 public:
 	static vector<UINT32> Storage_per_node; //GNRS storage overhead
-        static vector<UINT32> Workload_per_node; //GNRS answer query overhead
+        static vector<FLOAT64> Workload_per_node; //GNRS answer query overhead
         static vector<UINT32> CacheHit_per_guid; //GNRS queries answered by cache
         static vector<UINT32> QueryHopCnt;
         static vector<UINT32> QueryHitHopCnt;

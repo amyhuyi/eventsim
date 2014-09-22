@@ -890,7 +890,7 @@ void Underlay::calQueryWorkload(){
     }
     sort(Stat::Workload_per_node.begin(),Stat::Workload_per_node.end());
     string strgOutName = Settings::outFileName;
-    UINT32 unitQuryWrkld = 1;
+    FLOAT64 unitQuryWrkld = 1;
     if (Stat::Workload_per_node[Stat::Workload_per_node.size()/2]) {
         unitQuryWrkld = Stat::Workload_per_node[Stat::Workload_per_node.size()/2];
     }

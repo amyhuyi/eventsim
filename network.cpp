@@ -348,9 +348,9 @@ void Underlay::genOutFileName(){
     strgOutName += ss.str();
     ss.str("");
     if (Settings::DeployOnlyGW) {
-        strgOutName += "_DeployGW";  
+        strgOutName += "_DplyGW";  
     } else {
-        strgOutName += "_DeployAll";
+        strgOutName += "_DplyAll";
     }
     if (Settings::CacheOn) {
         strgOutName += "_CacheOn";
@@ -367,13 +367,18 @@ void Underlay::genOutFileName(){
         ss <<Settings::CachePerc;
         strgOutName += ss.str();
         ss.str("");
+        strgOutName +="_UpdFrq";
+        ss <<Settings::UpdateFrqGUID;
+        strgOutName += ss.str();
+        ss.str("");
+        
     } else {
         strgOutName += "_CacheOff";
     }
     if (Settings::balanceBase) {
-        strgOutName += "_RandSelct";
+        strgOutName += "_RndSlct";
     } else {
-        strgOutName += "_ShortestSelct";
+        strgOutName += "_ShrtSlct";
     }
     Settings::outFileName = strgOutName;
 }
@@ -798,6 +803,7 @@ UINT32 Underlay::calCacheLatOverhead(vector<UINT32> pathNodeIdx, UINT32 hitNodeI
             break;
         }
     }
+    Stat::QueryHitHopCnt.push_back(hopCount); //record how many queries hit cache in the middle of the route
     //debug
     if (hopCount == 102) {
         cout<<"No hit query: hit nodeIdx= "<<hitNodeIdx<<". Route info:";
@@ -805,10 +811,12 @@ UINT32 Underlay::calCacheLatOverhead(vector<UINT32> pathNodeIdx, UINT32 hitNodeI
             cout<<pathNodeIdx[i]<<",";
         }
         cout<<endl;
+        return 0;
+    }   
+    if (hopCount == 101) {
+        hopCount = pathNodeIdx.size()-1;
     }
-
-    Stat::QueryHitHopCnt.push_back(hopCount); //record how many queries hit cache in the middle of the route
-    return (hopCount*Settings::CacheLookupLat);
+    return ((++hopCount)*Settings::CacheLookupLat);
 }
 
 /*
@@ -834,28 +842,30 @@ FLOAT64 Underlay::calSingleQueryWrkld(UINT64 currGUIDIdx, UINT32 currNodeIdx){
     } else if(Settings::CacheOn==1){
         //cout<<"Cache lookup only at src \n";
         queryPathNode.clear();
-        queryPathNode.push_back(dstReplicahost);
     }
     else{
         //cout<<"Cache lookup along the route \n";
         getShortestPath(global_node_table[currNodeIdx].getASIdx(), global_node_table[dstReplicahost].getASIdx(),queryPathAS);
         queryPathNode.clear();
-        for (int i = 0; i < queryPathAS.size(); i++) {
-            Stat::QueryHopCnt.push_back(queryPathAS.size());
+        for (int i = 0; i < queryPathAS.size(); i++) {           
             randNum = Util::Inst()->GenInt(as_v[queryPathAS[i]]._myNodes.size());
             set <UINT32>::iterator it = as_v[queryPathAS[i]]._myNodes.begin();
             std::advance(it, randNum);
             queryPathNode.push_back((*it));
         }
-        queryPathNode.push_back(dstReplicahost);
-        debugQueryPathNode = queryPathNode;
-        debugQueryPathNode.insert(debugQueryPathNode.begin(), currNodeIdx);
     }
+    queryPathNode.push_back(dstReplicahost);
+    Stat::QueryHopCnt.push_back(queryPathNode.size());
+    debugQueryPathNode = queryPathNode;
+    debugQueryPathNode.insert(debugQueryPathNode.begin(), currNodeIdx);
     hitNode= global_node_table[currNodeIdx].cacheLookup(currGUIDIdx, currTS, queryPathNode,false);
+    global_guid_list[currGUIDIdx].increaseQeueryCnt();
+    //debug
+    cout<<"currGUIDIdx= "<<currGUIDIdx<<" issued Query Cnt = "<<global_guid_list[currGUIDIdx].getQueryCnt()<<endl;
     cacheLat = calCacheLatOverhead(debugQueryPathNode,hitNode);
     minDistance = getLatency(currNodeIdx,hitNode);
-    //return (minDistance*2 + cacheLat);
-    return minDistance*2;
+    return (minDistance*2 + cacheLat);
+    //return minDistance*2;
 }
 void Underlay::calQueryWorkload(){
     assert(Stat::Workload_per_node.size() == global_node_table.size());
@@ -914,11 +924,20 @@ void Underlay::calQueryWorkload(){
     }
     strgOutName = Settings::outFileName + "_ratioOfQSWrkld_cdf";
     Util::Inst()->genCDF(strgOutName.c_str(),ratio_workload);
-    if (Settings::CacheOn==2) {
+    if (Settings::CacheOn) {
         strgOutName = Settings::outFileName + "_QhopCnt_cdf";
         Util::Inst()->genCDF(strgOutName.c_str(),Stat::QueryHopCnt);
         strgOutName = Settings::outFileName + "_QHitHopCnt_cdf";
-        Util::Inst()->genCDF(strgOutName.c_str(),Stat::QueryHitHopCnt); 
+        Util::Inst()->genCDF(strgOutName.c_str(),Stat::QueryHitHopCnt);
+        vector<FLOAT64> errRate_v;
+        for (UINT32 i = 0; i < global_guid_list.size(); i++) {
+            if (global_guid_list[i].getPopularity())
+                errRate_v.push_back((FLOAT32)Stat::Error_cnt_per_guid[i]/(FLOAT32)global_guid_list[i].getPopularity());
+        }
+        strgOutName = Settings::outFileName + "_ErrorRate_cdf";
+        Util::Inst()->genCDF(strgOutName.c_str(),errRate_v);
+        strgOutName = Settings::outFileName + "_ErrorCnt_cdf";
+        Util::Inst()->genCDF(strgOutName.c_str(),Stat::Error_cnt_per_guid);
     }
 }
 /*
@@ -1221,7 +1240,7 @@ void Underlay::PrepareWorkloadCal(){
     assert(Stat::Storage_per_node.size() == global_node_table.size());
     set<UINT32> glbCalHostSet;
     for (UINT64 guidIdx = 0; guidIdx < global_guid_list.size(); guidIdx++) {
-        Stat::Error_rate_per_guid.push_back(0);
+        Stat::Error_cnt_per_guid.push_back(0);
         Stat::CacheHit_per_guid.push_back(0);
         glbCalHostSet.clear();
         global_guid_list[guidIdx]._replica_hosts.clear();

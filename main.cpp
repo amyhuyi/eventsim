@@ -16,11 +16,11 @@ vector<Query_Latency> Stat::Query_latency_time;
 vector<Query_Latency> Stat::Insertion_latency_time;
 vector<Retry_Count> Stat::Retry_Cnt;
 vector<Retry_Count> Stat::DHT_RetryCnt;
-vector<FLOAT32> Stat::Error_rate_per_guid; 
+vector<UINT32> Stat::Error_cnt_per_guid; 
 vector<UINT32> Stat::Migration_per_node;
 UINT32 Stat::Premature_joins=0;
 UINT32 Stat::Premature_leaves=0;
-UINT32 Settings::CacheLookupLat =0;
+UINT32 Settings::CacheLookupLat =2; //cache lookup latency at one hop in ms
 FLOAT64 Settings::EndTime = 50;
 FLOAT64 Settings::TestThreshold = 0.1;
 UINT32 Settings::TotalVirtualGUID = 1000000000;
@@ -53,6 +53,7 @@ UINT32 Settings::CacheOn =0;
 bool Settings::balanceBase =0;
 FLOAT32 Settings::CachePerc = 0.1;
 FLOAT32 Settings::GoThroughProb = 0.001;
+FLOAT32 Settings::UpdateFrqGUID = 0.01;
 /*!
  *  @brief Computes floor(log2(n))
  *  Works by finding position of MSB set.
@@ -272,6 +273,12 @@ void ParseArg(const char * argv)
 	ss <<arg.substr(14);
 	ss >>Settings::GoThroughProb;
     }
+    else if (arg.find("updatefrqguid=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(14);
+	ss >>Settings::UpdateFrqGUID;
+    }
 }
 
 int main(int argc, const char* argv[])
@@ -317,6 +324,7 @@ int main(int argc, const char* argv[])
     cout<<"Settings::CacheOn="<<Settings::CacheOn<<endl;
     cout<<"Settings::CacheLookupLat="<<Settings::CacheLookupLat<<endl;
     cout<<"Settings::GoThroughProb="<<Settings::GoThroughProb<<endl;
+    cout<<"Settings::UpdateFrqGUID="<<Settings::UpdateFrqGUID<<endl;
     if (Settings::Geo_Lat_On) {
         cout<<"Settings::Geo_Lat_On = true"<<endl;
     } else {
@@ -343,7 +351,7 @@ int main(int argc, const char* argv[])
     
     
     UINT32 totalNodes = Underlay::Inst()->global_node_table.size();
-    Underlay::Inst()->calStorageWorkload();
+    //Underlay::Inst()->calStorageWorkload();
     Underlay::Inst()->calQueryWorkload();
     if(Settings::ChurnHours)
         Underlay::Inst()->generateLeaveChurn(Settings::ChurnHours, Settings::ChurnPerNode*totalNodes, 

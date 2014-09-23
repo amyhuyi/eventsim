@@ -329,7 +329,7 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
                 if (_cache[i]._timestamp < correctTimeStamp) {
                     cout<<"Stale Cache\n";
                     if (!staleFlag) {
-                        Stat::Error_rate_per_guid[guidIdx]++;
+                        Stat::Error_cnt_per_guid[guidIdx]++;
                     }
                     hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath, true);
                     _cache[i]._timestamp = myTimestamp;

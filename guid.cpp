@@ -17,14 +17,14 @@
 GUID::GUID (UINT32 id, UINT32 nodeIdx, FLOAT64 time, char mobilityDegree, UINT64 popularity){
     _guid = id;
     _popularity = popularity;
-    //_address_nodeIdx = nodeIdx;
     _vphostIdx = Underlay::Inst()->getvpHostIdx(_guid,0,Underlay::Inst()->global_node_table.size()-1);
-    //_last_update_time = time;
     _mobility_degree = mobilityDegree;
     _address_q.clear();
     _address_q.push_back(nodeIdx);
     _updateTime_q.clear();
     _updateTime_q.push_back(time);
+    _updateRate = Settings::UpdateFrqGUID;
+    _issuedQueryCnt =0;
 }
 GUID::~GUID(){
     
@@ -96,4 +96,26 @@ UINT32 GUID::getCurrAddrNodeIdx(){
 UINT32 GUID::getAddrASIdx(){
     assert(_address_q.size());
     return Underlay::Inst()->global_node_table[_address_q[0]].getASIdx();
+}
+
+bool GUID::increaseQeueryCnt(){
+    _issuedQueryCnt ++;
+    if ((_issuedQueryCnt*_updateRate) >= 1) {
+        simulateAnUpdate();
+        _issuedQueryCnt =0;
+        return true;
+    }
+    return false;
+
+}
+
+UINT32 GUID::getQueryCnt(){
+    return _issuedQueryCnt;
+}
+
+void GUID::simulateAnUpdate(){
+    FLOAT64 currUpdateTime = getLastUpdateTime();
+    currUpdateTime ++;
+    updateAddrNodeIdx(getNextAddrNodeIdx(),currUpdateTime);
+    assert(getLastUpdateTime() == currUpdateTime);
 }

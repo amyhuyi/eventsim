@@ -93,6 +93,7 @@ public:
         static FLOAT32 GoThroughProb; //default go through probability for a cache entry
         static bool balanceBase; // calculate baseline of workload balance
         static UINT32 CacheLookupLat; //cache lookup latency per hop in ms
+        static FLOAT32 UpdateFrqGUID; //update frequency per guid
 };
 
 typedef struct _Query_Latency{
@@ -156,7 +157,7 @@ public:
 	static vector<Retry_Count> Retry_Cnt;//count for both insertion and query retry
         static vector<Retry_Count> DHT_RetryCnt; //all K host failed, then a DHT retry
         static vector<UINT32> Migration_per_node;
-        static vector<FLOAT32> Error_rate_per_guid; // first record the error count, then compute the rate
+        static vector<UINT32> Error_cnt_per_guid; // first record the error count, then compute the rate
         /*PING overhead to maintain node table consistency
          *only record counts of extra ping during simulation
          *final process: ping counts*ping size

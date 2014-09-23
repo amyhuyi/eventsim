@@ -20,6 +20,7 @@ private:
 	FLOAT64 _updateRate; //how long to issue an update in terms of query frequency       
         char _mobility_degree;//'L' ||  'R'||  'G'
         UINT64 _popularity; //query no. following zipf
+        UINT32 _issuedQueryCnt;
 public:
         vector<UINT32> _address_q; //queue of the Node (PoP) Idx this GUID traverses among
         vector<FLOAT64> _updateTime_q;
@@ -38,6 +39,9 @@ public:
         UINT32 getAddrASIdx();
         UINT64 getPopularity();
         void updateAddrNodeIdx(UINT32 newNodeIdx, FLOAT64 time);
+        bool increaseQeueryCnt(); //return whether an update has been issued
+        UINT32 getQueryCnt();
+        void simulateAnUpdate();
 };
 
 

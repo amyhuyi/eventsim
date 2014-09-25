@@ -321,21 +321,21 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
             _cache[i]._fromLastError++;
             _cache[i]._hitCount++;
             if (_cache[i]._goThroughProb*_cache[i]._hitCount >=1) {
-                hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath,false);
+                hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath,staleFlag);
                 _cache[i]._timestamp = myTimestamp;
                 _cache[i]._hitCount=0;
                 return hitNodeIdx;
             }else{
                 if (_cache[i]._timestamp < correctTimeStamp) {
-                    cout<<"Stale Cache\n";
                     if (!staleFlag) {
                         Stat::Error_cnt_per_guid[guidIdx]++;
+                        cout<<"Stale Cache\n";
                     }
                     hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath, true);
                     _cache[i]._timestamp = myTimestamp;
                     _cache[i]._errorRate = 1.00/(FLOAT32)_cache[i]._fromLastError;
                     _cache[i]._fromLastError =0;
-                    _cache[i]._goThroughProb = _cache[i]._goThroughProb*2;
+                    //_cache[i]._goThroughProb = _cache[i]._goThroughProb*2;
                     return hitNodeIdx;
                 } else{
                     myTimestamp = _cache[i]._timestamp;
@@ -346,7 +346,7 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
         }
     }
     //cache miss
-    hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath,false);
+    hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath,staleFlag);
     Cache_Entry currCacheEntry (guidIdx, myTimestamp, 0, Settings::GoThroughProb);
     if (_cache.size() >= Settings::CachePerc*Underlay::Inst()->global_guid_list.size()) {
         _cache.erase(_cache.begin()); //creation time can be handled here

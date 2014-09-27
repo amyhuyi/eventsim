@@ -357,12 +357,10 @@ void Underlay::genOutFileName(){
         ss <<Settings::CacheOn;
         strgOutName += ss.str();
         ss.str("");
-        if (Settings::CacheOn==2) {
-            strgOutName += "_GoThru";
-            ss <<Settings::GoThroughProb;
-            strgOutName += ss.str();
-            ss.str("");
-        }
+        strgOutName += "_GoThru";
+        ss <<Settings::GoThroughProb;
+        strgOutName += ss.str();
+        ss.str("");
         strgOutName +="_CachePerc";
         ss <<Settings::CachePerc;
         strgOutName += ss.str();

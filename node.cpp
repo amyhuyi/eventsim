@@ -322,10 +322,9 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
             _cache[i]._fromLastError++;
             _cache[i]._hitCount++;
             if (_cache[i]._goThroughProb*_cache[i]._hitCount >=1) {
-                //cout<<"goThr="<<_cache[i]._goThroughProb<<", hitCnt= "<<_cache[i]._hitCount<<", goThrough to next hop"
-                //        <<",remainNodepath="<<remainNodePath.size()<<endl;
-                if (_cache[i]._timestamp < correctTimeStamp)
-                //    cout<<"Save one stale chance _cache[i]._timestamp="<<_cache[i]._timestamp<<",correctTimeStamp="<<correctTimeStamp<<endl;
+                //cout<<"goThr="<<_cache[i]._goThroughProb<<", hitCnt= "<<_cache[i]._hitCount<<", goThrough to next hop"<<endl;
+                //if (_cache[i]._timestamp < correctTimeStamp)
+                    //cout<<"Save one stale chance _cache[i]._timestamp="<<_cache[i]._timestamp<<",correctTimeStamp="<<correctTimeStamp<<endl;
                 hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath,staleFlag);
                 _cache[i]._timestamp = myTimestamp;
                 //cout<<"update my cache for guidIdx="<<_cache[i]._guidIdx<<endl;
@@ -334,10 +333,9 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
                 if (_cache[i]._timestamp < correctTimeStamp) {
                     if (!staleFlag) {
                         Stat::Error_cnt_per_guid[guidIdx]++;
-                    //    cout<<"Stale Cache first time counted \n";
+                        //cout<<"Stale Cache first time counted \n";
                     }
-                    //cout<<"Stale Cache for guid"<<_cache[i]._guidIdx<<",cachedTS="<<_cache[i]._timestamp<<",correctTS= "<<correctTimeStamp
-                    //    <<",hitCnt="<<_cache[i]._hitCount<<",popularity="<<Underlay::Inst()->global_guid_list[guidIdx].getPopularity()<<endl;
+                    //cout<<"Stale Cache for guid"<<_cache[i]._guidIdx<<",hitCnt="<<_cache[i]._hitCount<<",popularity="<<Underlay::Inst()->global_guid_list[guidIdx].getPopularity()<<endl;
                     hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath, true);
                     _cache[i]._timestamp = myTimestamp;
                     //cout<<"update my cache for"<<_cache[i]._guidIdx<<endl;
@@ -345,6 +343,7 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
                     _cache[i]._fromLastError =0;
                     //_cache[i]._goThroughProb = 0.7;
                 } else{
+                    //cout<<"suppose hit at my cache"<<_nodeIdx<<",guid="<<guidIdx<<endl;
                     myTimestamp = _cache[i]._timestamp;
                     hitNodeIdx = _nodeIdx;
                     Stat::CacheHit_per_guid[guidIdx]++;

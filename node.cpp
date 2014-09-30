@@ -318,38 +318,55 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
     remainNodePath.erase(remainNodePath.begin());
     for (UINT32 i = 0; i < _cache.size(); i++) {//lookup my cache
         if (_cache[i]._guidIdx == guidIdx) { //cache hit
+            //cout<<"in my cache nodeIdx="<<_nodeIdx<<", guidIdx="<<guidIdx<<endl;
             _cache[i]._fromLastError++;
             _cache[i]._hitCount++;
             if (_cache[i]._goThroughProb*_cache[i]._hitCount >=1) {
+                //cout<<"goThr="<<_cache[i]._goThroughProb<<", hitCnt= "<<_cache[i]._hitCount<<", goThrough to next hop"
+                //        <<",remainNodepath="<<remainNodePath.size()<<endl;
+                if (_cache[i]._timestamp < correctTimeStamp)
+                //    cout<<"Save one stale chance _cache[i]._timestamp="<<_cache[i]._timestamp<<",correctTimeStamp="<<correctTimeStamp<<endl;
                 hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath,staleFlag);
                 _cache[i]._timestamp = myTimestamp;
+                //cout<<"update my cache for guidIdx="<<_cache[i]._guidIdx<<endl;
                 _cache[i]._hitCount=0;
-                return hitNodeIdx;
             }else{
                 if (_cache[i]._timestamp < correctTimeStamp) {
                     if (!staleFlag) {
                         Stat::Error_cnt_per_guid[guidIdx]++;
-                        cout<<"Stale Cache\n";
+                    //    cout<<"Stale Cache first time counted \n";
                     }
+                    //cout<<"Stale Cache for guid"<<_cache[i]._guidIdx<<",cachedTS="<<_cache[i]._timestamp<<",correctTS= "<<correctTimeStamp
+                    //    <<",hitCnt="<<_cache[i]._hitCount<<",popularity="<<Underlay::Inst()->global_guid_list[guidIdx].getPopularity()<<endl;
                     hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath, true);
                     _cache[i]._timestamp = myTimestamp;
-                    _cache[i]._errorRate = 1.00/(FLOAT32)_cache[i]._fromLastError;
+                    //cout<<"update my cache for"<<_cache[i]._guidIdx<<endl;
+                    //_cache[i]._errorRate = 1.00/(FLOAT32)_cache[i]._fromLastError;
                     _cache[i]._fromLastError =0;
-                    //_cache[i]._goThroughProb = _cache[i]._goThroughProb*2;
-                    return hitNodeIdx;
+                    //_cache[i]._goThroughProb = 0.7;
                 } else{
                     myTimestamp = _cache[i]._timestamp;
+                    hitNodeIdx = _nodeIdx;
                     Stat::CacheHit_per_guid[guidIdx]++;
-                    return _nodeIdx;
                 }              
             }
+            assert(_cache[i]._guidIdx == guidIdx && _cache[i]._timestamp == correctTimeStamp);
+            Cache_Entry currCacheEntry = _cache[i];
+            //cout<<"to delete _cache[i].guid"<<_cache[i]._guidIdx<<endl;
+            _cache.erase(_cache.begin()+i);
+            _cache.push_back(currCacheEntry);
+            //cout<<"new _cache[i].guid="<<_cache[i]._guidIdx<<",_cache end guid="<<_cache[_cache.size()-1]._guidIdx<<endl;
+            return hitNodeIdx;
         }
     }
     //cache miss
     hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath,staleFlag);
     Cache_Entry currCacheEntry (guidIdx, myTimestamp, 0, Settings::GoThroughProb);
     if (_cache.size() >= Settings::CachePerc*Underlay::Inst()->global_guid_list.size()) {
-        _cache.erase(_cache.begin()); //creation time can be handled here
+        //debug
+        //cout<<"to kick out a cache with hit count"<<(*_cache.begin())._hitCount<<", timestamp"<<(*_cache.begin())._timestamp<<endl;
+        _cache.erase(_cache.begin()); //creation time can be handled here  
+        //cout<<"to pushback a cache with timestamp"<<_cache[_cache.size()-1]._timestamp<<endl;
     } 
     _cache.push_back(currCacheEntry);
     return hitNodeIdx;

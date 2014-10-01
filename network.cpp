@@ -347,6 +347,10 @@ void Underlay::genOutFileName(){
     ss <<Settings::Local_K;
     strgOutName += ss.str();
     ss.str("");
+    strgOutName += "_QOrigBal";
+    ss <<Settings::QueryOriginBalance;
+    strgOutName += ss.str();
+    ss.str("");
     if (Settings::DeployOnlyGW) {
         strgOutName += "_DplyGW";  
     } else {
@@ -509,14 +513,14 @@ void Underlay::getNeighbors(UINT32 nodeIdx, set<UINT32> & neighborsIdx_v){
 /*
  */
 UINT32 Underlay::migrationOverhead4Join(UINT32 nodeIdx){
-    UINT32 singleShare = Settings::TotalVirtualGUID / _num_of_node;
+    UINT32 singleShare = Settings::ActiveGUIDperPoP;
     UINT32 noOfoffline = 0;
     //ToDo: count no of offline neighbors spread among my life neighbors
     return singleShare;
 }
 
 UINT32 Underlay::migrationOverhead4Leave(UINT32 nodeIdx){
-    UINT32 singleShare = Settings::TotalVirtualGUID / _num_of_node;
+    UINT32 singleShare = Settings::ActiveGUIDperPoP;
     UINT32 noOfoffline = 0;
     //ToDo: count no of offline neighbors spread among my life neighbors
     return singleShare;
@@ -621,7 +625,11 @@ void Underlay::getQueryNodesByPoP(UINT32 guidIdx, vector<UINT32>& _queryNodes, v
     UINT32 cityIdx = global_node_table[global_guid_list[guidIdx].getCurrAddrNodeIdx()].getCityIdx();
     string currCountry = city_list[cityIdx].getCountry();
     if (exponent < -0.5) {
-        _queryNodes = city_list[cityIdx]._nodeIdx_v;
+        //debug
+        if (exponent <= -10) //just for testing
+            _queryNodes.push_back(city_list[cityIdx]._nodeIdx_v[0]);
+        else
+            _queryNodes = city_list[cityIdx]._nodeIdx_v;
     } 
     else if (exponent < -0.1){
         for (int i = 0; i < workload_cities.size(); i++) {
@@ -675,7 +683,7 @@ void Underlay::getQueryNodesByPoP(UINT32 guidIdx, vector<UINT32>& _queryNodes, v
     assert(_queryNodes.size()==_queryQuota.size());
     //debug
     /*
-    cout<<"exponent"<<exponent<<" popularity "<<global_guid_list[guidIdx].getPopularity()<<" query nodes: "<<_queryNodes.size();
+    cout<<"guidIdx= " <<guidIdx<<",exponent="<<exponent<<",popularity="<<global_guid_list[guidIdx].getPopularity()<<" query nodes: "<<_queryNodes.size();
         for (int i = 0; i < _queryQuota.size(); i++) {
             cout<<","<<_queryQuota[i];
         }
@@ -853,16 +861,14 @@ FLOAT64 Underlay::calSingleQueryWrkld(UINT64 currGUIDIdx, UINT32 currNodeIdx){
     Stat::QueryHopCnt.push_back(queryPathNode.size());
     debugQueryPathNode = queryPathNode;
     debugQueryPathNode.insert(debugQueryPathNode.begin(), currNodeIdx);
-    
     hitNode= global_node_table[currNodeIdx].cacheLookup(currGUIDIdx, currTS, queryPathNode,false);
     global_guid_list[currGUIDIdx].increaseQeueryCnt();
-    //debug
-    //cout<<"currGUIDIdx= "<<currGUIDIdx<<" issued Query Cnt = "<<global_guid_list[currGUIDIdx].getQueryCnt()<<endl;
     cacheLat = calCacheLatOverhead(debugQueryPathNode,hitNode);
     minDistance = getLatency(currNodeIdx,hitNode);
     //return (minDistance*2 + cacheLat);
     return minDistance*2;
 }
+
 void Underlay::calQueryWorkload(){
     assert(Stat::Workload_per_node.size() == global_node_table.size());
     assert(Stat::CacheHit_per_guid.size() == global_guid_list.size());
@@ -874,7 +880,12 @@ void Underlay::calQueryWorkload(){
     vector<UINT32> delay_results_v;
     UINT32 randNum, randNum2, currGUIDIdx, currQNodeIdx;
     for (currGUIDIdx = 0; currGUIDIdx < global_guid_list.size(); currGUIDIdx++) {
-        getQueryNodesByPoP(currGUIDIdx,queryNodes,queryQuota,0);
+        //getQueryNodesByPoP(currGUIDIdx,queryNodes,queryQuota,-0.4);
+        if (Settings::QueryOriginBalance>0) {
+            getQueryNodesByPoP(currGUIDIdx,queryNodes,queryQuota,0);
+        } else {
+            getQueryNodesByPoP(currGUIDIdx,queryNodes,queryQuota,-11.0);
+        }
     }
     for (UINT32 i = 0;  i<global_node_table.size(); i++) {
         if (global_node_table[i]._queryWrkld_v.size()) {
@@ -895,6 +906,9 @@ void Underlay::calQueryWorkload(){
         }     
     }
     sort(Stat::Workload_per_node.begin(),Stat::Workload_per_node.end());
+    while (Stat::Workload_per_node.size() && (!Stat::Workload_per_node[0])) {
+        Stat::Workload_per_node.erase(Stat::Workload_per_node.begin());
+    }
     string strgOutName = Settings::outFileName;
     FLOAT64 unitQuryWrkld = 1;
     if (Stat::Workload_per_node[Stat::Workload_per_node.size()/2]) {
@@ -908,19 +922,10 @@ void Underlay::calQueryWorkload(){
     strgOutName = Settings::outFileName + "_QWrkld_cdf";
     Util::Inst()->genCDF(strgOutName.c_str(),Stat::Workload_per_node);
     strgOutName = Settings::outFileName + "_qLatency_cdf";
-    Util::Inst()->genCDF(strgOutName.c_str(),delay_results_v);
+    Util::Inst()->genCDF(strgOutName.c_str(),delay_results_v);    
     if (Settings::CacheOn) {
         strgOutName = Settings::outFileName + "_cacheHitPerguid_cdf";
         Util::Inst()->genCDF(strgOutName.c_str(),Stat::CacheHit_per_guid);
-    }
-    /*vector<FLOAT64> ratio_workload;
-    for (int i = 0; i < Stat::Workload_per_node.size(); i++) {
-        if (Stat::Storage_per_node[i] !=0) 
-            ratio_workload.push_back((FLOAT64)Stat::Workload_per_node[i]/(FLOAT64)Stat::Storage_per_node[i]);
-    }
-    strgOutName = Settings::outFileName + "_ratioOfQSWrkld_cdf";
-    Util::Inst()->genCDF(strgOutName.c_str(),ratio_workload);*/
-    if (Settings::CacheOn) {
         strgOutName = Settings::outFileName + "_QhopCnt_cdf";
         Util::Inst()->genCDF(strgOutName.c_str(),Stat::QueryHopCnt);
         strgOutName = Settings::outFileName + "_QHitHopCnt_cdf";

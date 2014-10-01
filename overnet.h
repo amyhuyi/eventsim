@@ -71,10 +71,8 @@ public:
         static FLOAT64 ChurnPerNode;
         static FLOAT64 QueryPerNode;
         static FLOAT64 UpdatePerNode;
-	static UINT32 TotalVirtualGUID;
 	static UINT32 ActiveGUIDperPoP;
         static UINT32 NeighborSize;
-        static UINT32 DHTHop;
         static UINT32 GNRS_K; //global k
         static UINT32 Local_K; //consists of nodes in the insertion AS 
         static UINT32 Regional_K; // consists of nodes in the same country
@@ -92,6 +90,7 @@ public:
         static FLOAT32 CachePerc; // percentage of top popular GUID each pop locally cached
         static FLOAT32 GoThroughProb; //default go through probability for a cache entry
         static bool balanceBase; // calculate baseline of workload balance
+        static UINT32 QueryOriginBalance; //0-queries orginiate from a PoP, 1-from a city, 2-from a country, 3-from global
         static UINT32 CacheLookupLat; //cache lookup latency per hop in ms
         static FLOAT32 UpdateFrqGUID; //update frequency per guid
 };

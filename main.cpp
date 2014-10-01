@@ -23,10 +23,8 @@ UINT32 Stat::Premature_leaves=0;
 UINT32 Settings::CacheLookupLat =2; //cache lookup latency at one hop in ms
 FLOAT64 Settings::EndTime = 50;
 FLOAT64 Settings::TestThreshold = 0.1;
-UINT32 Settings::TotalVirtualGUID = 1000000000;
 UINT32 Settings::ActiveGUIDperPoP = 10;	// 
 UINT32 Settings::NeighborSize =0; //full range neighbor size if undefined in command line, use default 2*ceil(K/2)
-UINT32 Settings::DHTHop = 5;//estimated hops for a DHT path
 UINT32 Settings::GNRS_K =5;
 UINT32 Settings::Local_K =1;
 UINT32 Settings::Regional_K =1;
@@ -51,6 +49,7 @@ FLOAT32 Settings::RegionalMobilityPerc =0.2;
 bool Settings::DeployOnlyGW = 0;
 UINT32 Settings::CacheOn =0;
 bool Settings::balanceBase =0;
+UINT32 Settings::QueryOriginBalance =3;
 FLOAT32 Settings::CachePerc = 0.1;
 FLOAT32 Settings::GoThroughProb = 0.001;
 FLOAT32 Settings::UpdateFrqGUID = 0.01;
@@ -261,6 +260,12 @@ void ParseArg(const char * argv)
 	ss <<arg.substr(12);
 	ss >>Settings::balanceBase;
     }
+    else if (arg.find("queryoriginbalance=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(19);
+	ss >>Settings::QueryOriginBalance;
+    }
     else if (arg.find("cacheperc=") != string::npos)
     {
 	stringstream ss (stringstream::in | stringstream::out);
@@ -296,14 +301,11 @@ int main(int argc, const char* argv[])
         abort();
     }
     cout<<"total # nodes "<<Underlay::Inst()->global_node_table.size()<<endl;
-    //Settings::DHTHop = log10((FLOAT64)Underlay::Inst()->global_node_table.size());
     cout<<"Settings::"<<endl;
     cout<<"Settings::EndTime="<<Settings::EndTime<<endl;
     cout<<"Settings::TestThreshold="<<Settings::TestThreshold<<endl;
-    cout<<"Settings::TotalVirtualGUID="<<Settings::TotalVirtualGUID<<endl;
     cout<<"Settings::ActiveGUIDperPoP="<<Settings::ActiveGUIDperPoP<<endl;	// 
     cout<<"Settings::NeighborSize="<<Settings::NeighborSize<<endl; //full range neighbor size if undefined in command line, use default 2*ceil(K/2)
-    cout<<"Settings::DHTHop="<<Settings::DHTHop<<endl;//estimated hops for a DHT path
     cout<<"Settings::GNRS_K="<<Settings::GNRS_K<<endl;
     cout<<"Settings::Local_K="<<Settings::Local_K<<endl;
     cout<<"Settings::Regional_K="<<Settings::Regional_K<<endl;
@@ -325,6 +327,7 @@ int main(int argc, const char* argv[])
     cout<<"Settings::CacheLookupLat="<<Settings::CacheLookupLat<<endl;
     cout<<"Settings::GoThroughProb="<<Settings::GoThroughProb<<endl;
     cout<<"Settings::UpdateFrqGUID="<<Settings::UpdateFrqGUID<<endl;
+    cout<<"Settings::QueryOriginBalance="<<Settings::QueryOriginBalance<<endl;
     if (Settings::Geo_Lat_On) {
         cout<<"Settings::Geo_Lat_On = true"<<endl;
     } else {

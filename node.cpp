@@ -155,7 +155,7 @@ FLOAT64 Node::calInsertDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyIngl
             assert(onlyInlocal.size()&&onlyInglobal.size());
             retryDistance = getMaxDistance(onlyInlocal)*2;
             retryDistance += getMaxDistance(onlyInglobal)*2;
-            retryDistance += (Settings::DHTHop) * getMinDistance(onlyInglobal,dstNodeIdx);
+            retryDistance += log10 ((double)Underlay::Inst()->global_node_table.size()) * getMinDistance(onlyInglobal,dstNodeIdx);
             //cout<<"retryDistance #4"<<retryDistance<<endl;
         }
         //debug
@@ -196,7 +196,7 @@ FLOAT64 Node::calQueryDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglo
                 Stat::Workload_per_node[onlyInlocal[i]] ++;
             }
             retryDistance += getMinDistance(onlyInglobal,dstNodeIdx)*2;
-            retryDistance += (Settings::DHTHop) * getMinDistance(onlyInglobal,dstNodeIdx);
+            retryDistance += log10 ((double)Underlay::Inst()->global_node_table.size())* getMinDistance(onlyInglobal,dstNodeIdx);
             Stat::Workload_per_node[dstNodeIdx]++;
             //debug
             cout<<"retryDistance #2"<<retryDistance<<endl;
@@ -318,32 +318,23 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
     remainNodePath.erase(remainNodePath.begin());
     for (UINT32 i = 0; i < _cache.size(); i++) {//lookup my cache
         if (_cache[i]._guidIdx == guidIdx) { //cache hit
-            //cout<<"in my cache nodeIdx="<<_nodeIdx<<", guidIdx="<<guidIdx<<endl;
-            _cache[i]._fromLastError++;
+            //_cache[i]._fromLastError++;
             _cache[i]._hitCount++;
             if (_cache[i]._goThroughProb*_cache[i]._hitCount >=1) {
-                //cout<<"goThr="<<_cache[i]._goThroughProb<<", hitCnt= "<<_cache[i]._hitCount<<", goThrough to next hop"<<endl;
-                //if (_cache[i]._timestamp < correctTimeStamp)
-                    //cout<<"Save one stale chance _cache[i]._timestamp="<<_cache[i]._timestamp<<",correctTimeStamp="<<correctTimeStamp<<endl;
                 hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath,staleFlag);
                 _cache[i]._timestamp = myTimestamp;
-                //cout<<"update my cache for guidIdx="<<_cache[i]._guidIdx<<endl;
                 _cache[i]._hitCount=0;
             }else{
                 if (_cache[i]._timestamp < correctTimeStamp) {
                     if (!staleFlag) {
                         Stat::Error_cnt_per_guid[guidIdx]++;
-                        //cout<<"Stale Cache first time counted \n";
                     }
-                    //cout<<"Stale Cache for guid"<<_cache[i]._guidIdx<<",hitCnt="<<_cache[i]._hitCount<<",popularity="<<Underlay::Inst()->global_guid_list[guidIdx].getPopularity()<<endl;
                     hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath, true);
                     _cache[i]._timestamp = myTimestamp;
-                    //cout<<"update my cache for"<<_cache[i]._guidIdx<<endl;
                     //_cache[i]._errorRate = 1.00/(FLOAT32)_cache[i]._fromLastError;
-                    _cache[i]._fromLastError =0;
+                    //_cache[i]._fromLastError =0;
                     //_cache[i]._goThroughProb = 0.7;
                 } else{
-                    //cout<<"suppose hit at my cache"<<_nodeIdx<<",guid="<<guidIdx<<endl;
                     myTimestamp = _cache[i]._timestamp;
                     hitNodeIdx = _nodeIdx;
                     Stat::CacheHit_per_guid[guidIdx]++;
@@ -351,22 +342,21 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
             }
             assert(_cache[i]._guidIdx == guidIdx && _cache[i]._timestamp == correctTimeStamp);
             Cache_Entry currCacheEntry = _cache[i];
-            //cout<<"to delete _cache[i].guid"<<_cache[i]._guidIdx<<endl;
             _cache.erase(_cache.begin()+i);
             _cache.push_back(currCacheEntry);
-            //cout<<"new _cache[i].guid="<<_cache[i]._guidIdx<<",_cache end guid="<<_cache[_cache.size()-1]._guidIdx<<endl;
             return hitNodeIdx;
         }
     }
     //cache miss
+    
     hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath,staleFlag);
-    Cache_Entry currCacheEntry (guidIdx, myTimestamp, 0, Settings::GoThroughProb);
-    if (_cache.size() >= Settings::CachePerc*Underlay::Inst()->global_guid_list.size()) {
-        //debug
-        //cout<<"to kick out a cache with hit count"<<(*_cache.begin())._hitCount<<", timestamp"<<(*_cache.begin())._timestamp<<endl;
-        _cache.erase(_cache.begin()); //creation time can be handled here  
-        //cout<<"to pushback a cache with timestamp"<<_cache[_cache.size()-1]._timestamp<<endl;
-    } 
-    _cache.push_back(currCacheEntry);
+    
+    if (!staleFlag) {
+        Cache_Entry currCacheEntry (guidIdx, myTimestamp, 0, Settings::GoThroughProb);
+        if (_cache.size() >= Settings::CachePerc*Underlay::Inst()->global_guid_list.size()) {
+            _cache.erase(_cache.begin()); //creation time can be handled here  
+        } 
+        _cache.push_back(currCacheEntry);
+    }
     return hitNodeIdx;
 }

@@ -262,11 +262,12 @@ void Underlay::InitializeStat(){
             global_node_table[currNodeIdx].setInWorkload();
         }
     }
+    Wrkld_Count thisWrkld;
+    thisWrkld._cacheWrkld=0;
+    thisWrkld._replicaWrkld=0;
     for (UINT32 i = 0; i < global_node_table.size(); i++) {
-        //Stat::Migration_per_node.push_back(0);
-        //Stat::Ping_per_node.push_back(0);
         Stat::Storage_per_node.push_back(0);
-        Stat::Workload_per_node.push_back(0);
+        Stat::Workload_per_node.push_back(thisWrkld);
     }
 }
 /* insert ActiveGUIDperPoP no. of guid on workload_cities
@@ -842,7 +843,7 @@ FLOAT64 Underlay::calSingleQueryWrkld(UINT64 currGUIDIdx, UINT32 currNodeIdx){
         minDistance = global_node_table[currNodeIdx].getMinDistance(global_guid_list[currGUIDIdx]._replica_hosts,dstReplicahost);   
     }
     if (Settings::CacheOn==0) {   //cacheOff
-        Stat::Workload_per_node[dstReplicahost]++;
+        Stat::Workload_per_node[dstReplicahost]._replicaWrkld++;
         return minDistance*2;
     } else if(Settings::CacheOn==1){ //cache only at src
         queryPathNode.clear();
@@ -906,28 +907,39 @@ void Underlay::calQueryWorkload(){
         }     
     }
     sort(Stat::Workload_per_node.begin(),Stat::Workload_per_node.end());
-    while (Stat::Workload_per_node.size() && (!Stat::Workload_per_node[0])) {
+    while (Stat::Workload_per_node.size() && (Stat::Workload_per_node[0]._cacheWrkld+Stat::Workload_per_node[0]._replicaWrkld)==0) {
         Stat::Workload_per_node.erase(Stat::Workload_per_node.begin());
     }
     string strgOutName = Settings::outFileName;
-    FLOAT64 unitQuryWrkld = 1;
-    if (Stat::Workload_per_node[Stat::Workload_per_node.size()/2]) {
-        unitQuryWrkld = Stat::Workload_per_node[Stat::Workload_per_node.size()/2];
+    strgOutName = Settings::outFileName + "_QWrkld_scatter";
+    Util::Inst()->outWrkldDetail(strgOutName.c_str(),Stat::Workload_per_node);
+    unsigned long long unitQuryWrkld = 1;
+    vector <FLOAT64> NormalizedWrkld;
+    vector <UINT32> totalRawWrkld;
+    for (UINT32 i = 0; i < Stat::Workload_per_node.size(); i++) {
+        unitQuryWrkld += (Stat::Workload_per_node[i]._cacheWrkld+Stat::Workload_per_node[i]._replicaWrkld);
     }
+    unitQuryWrkld = unitQuryWrkld / Stat::Workload_per_node.size();
+    
+    //to continue here
     //debug
     cout<<"unitQuryWrkld: "<<unitQuryWrkld<<endl;   
-    for (int i = 0; i < Stat::Workload_per_node.size(); i++) {
-        Stat::Workload_per_node[i] = Stat::Workload_per_node[i]/unitQuryWrkld;
+    for (UINT32 i = 0; i < Stat::Workload_per_node.size(); i++) {
+        totalRawWrkld.push_back(Stat::Workload_per_node[i]._cacheWrkld+Stat::Workload_per_node[i]._replicaWrkld);
+        NormalizedWrkld.push_back((FLOAT32)(Stat::Workload_per_node[i]._cacheWrkld+Stat::Workload_per_node[i]._replicaWrkld)/(FLOAT32)unitQuryWrkld);
     }
+    strgOutName = Settings::outFileName + "_QWrkld_hist";
+    Util::Inst()->genHistInput(strgOutName.c_str(),totalRawWrkld,20, true);
     strgOutName = Settings::outFileName + "_QWrkld_cdf";
-    Util::Inst()->genCDF(strgOutName.c_str(),Stat::Workload_per_node);
+    Util::Inst()->genCDF(strgOutName.c_str(),NormalizedWrkld);
+    /*
     strgOutName = Settings::outFileName + "_qLatency_cdf";
     Util::Inst()->genCDF(strgOutName.c_str(),delay_results_v);    
     if (Settings::CacheOn) {
         strgOutName = Settings::outFileName + "_cacheHitPerguid_cdf";
         Util::Inst()->genCDF(strgOutName.c_str(),Stat::CacheHit_per_guid);
-        strgOutName = Settings::outFileName + "_QhopCnt_cdf";
-        Util::Inst()->genCDF(strgOutName.c_str(),Stat::QueryHopCnt);
+        //strgOutName = Settings::outFileName + "_QhopCnt_cdf";
+        //Util::Inst()->genCDF(strgOutName.c_str(),Stat::QueryHopCnt);
         strgOutName = Settings::outFileName + "_QHitHopCnt_cdf";
         Util::Inst()->genCDF(strgOutName.c_str(),Stat::QueryHitHopCnt);
         vector<FLOAT64> errRate_v;
@@ -940,6 +952,7 @@ void Underlay::calQueryWorkload(){
         strgOutName = Settings::outFileName + "_ErrorCnt_cdf";
         Util::Inst()->genCDF(strgOutName.c_str(),Stat::Error_cnt_per_guid);
     }
+    */
 }
 /*
  generate query workload: independent of update

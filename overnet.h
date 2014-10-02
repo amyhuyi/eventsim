@@ -113,6 +113,15 @@ typedef struct _Query_Count{
     }
 } Query_Count;
 
+typedef struct _Wrkld_Count{
+    UINT32 _replicaWrkld; //guid to be queried
+    UINT32 _cacheWrkld; // no. of queries to the target guid
+    bool operator < (const struct _Wrkld_Count& anotherWrkld) const
+    {
+        return ((_replicaWrkld+_cacheWrkld) < (anotherWrkld._replicaWrkld+anotherWrkld._cacheWrkld));
+    }
+} Wrkld_Count;
+
 typedef struct _Cache_Entry{
     UINT32 _guidIdx;
     UINT32 _timestamp; //last updated time for the guid NA mapping
@@ -147,7 +156,7 @@ class Stat
 {
 public:
 	static vector<UINT32> Storage_per_node; //GNRS storage overhead
-        static vector<FLOAT64> Workload_per_node; //GNRS answer query overhead
+        static vector<Wrkld_Count> Workload_per_node; //GNRS answer query overhead
         static vector<UINT32> CacheHit_per_guid; //GNRS queries answered by cache
         static vector<UINT32> QueryHopCnt;
         static vector<UINT32> QueryHitHopCnt;

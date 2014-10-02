@@ -8,7 +8,7 @@
 //default setting
 vector<UINT32> Stat::Ping_per_node;
 vector<UINT32> Stat::Storage_per_node; //GNRS storage overhead
-vector<FLOAT64> Stat::Workload_per_node; //GNRS answer query overhead
+vector<Wrkld_Count> Stat::Workload_per_node;
 vector<UINT32> Stat::CacheHit_per_guid;
 vector<UINT32> Stat::QueryHopCnt;
 vector<UINT32> Stat::QueryHitHopCnt;

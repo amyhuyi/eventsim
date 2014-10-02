@@ -292,3 +292,79 @@ void Util::genPDF(const char* outfilename, vector<UINT32>& results_v){
     }
     outfHdlr.close();
 }
+
+void Util::genHistInput(const char* outfilename, vector<UINT32>& results_v, UINT32 noOfBin, bool enableFurther){
+    if (results_v.size()==0) {
+        return;
+    }
+    ofstream outfHdlr;
+    outfHdlr.open(outfilename,ios::out | ios::in | ios:: trunc);
+    assert (noOfBin>0);
+    sort(results_v.begin(), results_v.end());
+    UINT32 currBinCnt=0;
+    while (results_v.size() && results_v.front()==0) {
+        currBinCnt++;
+        results_v.erase(results_v.begin());
+    }
+    vector<Query_Count> bin_v;
+    Query_Count thisBinInfor;
+    UINT32 binDistance = (results_v.back()-results_v.front())/noOfBin;
+    outfHdlr<<results_v.front()<<'\t'<<currBinCnt<<endl;
+    thisBinInfor._guidIdx=results_v.front();
+    thisBinInfor._queryCnt=currBinCnt;
+    bin_v.push_back(thisBinInfor);
+    currBinCnt=0;
+    UINT32 currBinThreshold = results_v.front()+binDistance;
+    for (int i=0; i<results_v.size(); i++) {
+        while (results_v[i]>currBinThreshold) {
+            outfHdlr<<currBinThreshold<<'\t'<<currBinCnt<<endl;
+            thisBinInfor._guidIdx=currBinThreshold;
+            thisBinInfor._queryCnt=currBinCnt;
+            bin_v.push_back(thisBinInfor);
+            currBinCnt =0;
+            currBinThreshold += binDistance;
+            if (currBinThreshold>results_v.back()) {
+                currBinThreshold = results_v.back();
+            }
+        }
+        currBinCnt++;
+        if (i == results_v.size()-1) {
+            outfHdlr<<currBinThreshold<<'\t'<<currBinCnt<<endl;
+        }
+
+    }
+    outfHdlr.close();
+    sort(bin_v.begin(),bin_v.end());
+    if (bin_v.back()._guidIdx != results_v.front() && enableFurther) {
+        UINT32 lower = bin_v.back()._guidIdx - binDistance;
+        UINT32 upper = bin_v.back()._guidIdx;
+        vector<UINT32> toFurther_v;
+        for (int i = 0; i < results_v.size(); i++) {
+            if (results_v[i]>= lower && results_v[i]<= upper) {
+                toFurther_v.push_back(results_v[i]);
+            }
+        }
+        string outFile = outfilename;
+        outFile +="FurtherHist";
+        genHistInput(outFile.c_str(),toFurther_v,noOfBin, false);
+    }
+    
+} 
+
+void Util::outWrkldDetail(const char* outfilename, vector<Wrkld_Count>& Wrkld_v){
+    ofstream outfHdlr;
+    outfHdlr.open(outfilename,ios::out | ios::in | ios:: trunc);
+    vector <UINT32> cacheWrkld_v, replicaWrkld_v;
+    for (int i=0; i<Wrkld_v.size(); i++) {
+        outfHdlr<<Wrkld_v[i]._replicaWrkld<<'\t'<<Wrkld_v[i]._cacheWrkld<<endl;
+        cacheWrkld_v.push_back(Wrkld_v[i]._cacheWrkld);
+        replicaWrkld_v.push_back(Wrkld_v[i]._replicaWrkld);
+    }
+    outfHdlr.close();
+    string outName = outfilename;
+    outName += "cacheWrkld_hist";
+    genHistInput(outName.c_str(), cacheWrkld_v, 20, true);
+    outName = outfilename;
+    outName += "repWrkld_hist";
+    genHistInput(outName.c_str(), replicaWrkld_v, 20, true);
+}

@@ -30,5 +30,8 @@ public:
     void genCDF(const char* outfilename, vector<UINT32>& results_v);
     void genCDF(const char* outfilename, vector<FLOAT64>& results_v);
     void genPDF(const char* outfilename, vector<UINT32>& results_v);
+    //output cache and replica workload of each PoP, generate histogram imput for cache and replica workload
+    void outWrkldDetail(const char* outfilename, vector<Wrkld_Count>& Wrkld_v);
+    void genHistInput(const char* outfilename,vector<UINT32>& results_v, UINT32 noOfBin, bool enableFurther);
     void getParetoVec(FLOAT64 thisShape, long int totalNo, vector<UINT32>& results_v);
 };

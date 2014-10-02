@@ -166,7 +166,7 @@ FLOAT64 Node::calInsertDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyIngl
 FLOAT64 Node::calQueryDelayRandomSelection(vector<UINT32> correctHost){
     assert(correctHost.size());
     UINT32 randSelHost = Util::Inst()->GenInt(correctHost.size());
-    Stat::Workload_per_node[correctHost[randSelHost]]++;
+    Stat::Workload_per_node[correctHost[randSelHost]]._replicaWrkld++;
     return (Underlay::Inst()->getLatency(_nodeIdx, correctHost[randSelHost])*2);
 }
 
@@ -178,26 +178,26 @@ FLOAT64 Node::calQueryDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglo
     if(onlyInlocal.size()){
         if(correctHost.size() && getMinDistance(onlyInlocal,dstNodeIdx)< getMinDistance(correctHost,dstNodeIdx)){
             retryDistance = getMinDistance(onlyInlocal,dstNodeIdx)*2;
-            Stat::Workload_per_node[dstNodeIdx]++;
+            Stat::Workload_per_node[dstNodeIdx]._replicaWrkld++;
             retryDistance += getMinDistance(correctHost,dstNodeIdx)*2;
-            Stat::Workload_per_node[dstNodeIdx]++;
+            Stat::Workload_per_node[dstNodeIdx]._replicaWrkld++;
             //debug
             cout<<"retryDistance #1"<<retryDistance<<endl;
             return retryDistance;
         }
         else if(correctHost.size() && getMinDistance(onlyInlocal,dstNodeIdx)>= getMinDistance(correctHost,dstNodeIdx)){
             minDistance = getMinDistance(correctHost,dstNodeIdx);
-            Stat::Workload_per_node[dstNodeIdx]++;
+            Stat::Workload_per_node[dstNodeIdx]._replicaWrkld++;
             return minDistance*2;
         }
         else{
             retryDistance = getMaxDistance(onlyInlocal)*2;
             for (int i = 0; i < onlyInlocal.size(); i++) {
-                Stat::Workload_per_node[onlyInlocal[i]] ++;
+                Stat::Workload_per_node[onlyInlocal[i]]._replicaWrkld++;
             }
             retryDistance += getMinDistance(onlyInglobal,dstNodeIdx)*2;
             retryDistance += log10 ((double)Underlay::Inst()->global_node_table.size())* getMinDistance(onlyInglobal,dstNodeIdx);
-            Stat::Workload_per_node[dstNodeIdx]++;
+            Stat::Workload_per_node[dstNodeIdx]._replicaWrkld++;
             //debug
             cout<<"retryDistance #2"<<retryDistance<<endl;
             return retryDistance;
@@ -205,7 +205,7 @@ FLOAT64 Node::calQueryDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglo
     }
     else{
         minDistance = getMinDistance(correctHost,dstNodeIdx);
-        Stat::Workload_per_node[dstNodeIdx]++;
+        Stat::Workload_per_node[dstNodeIdx]._replicaWrkld++;
         return minDistance*2;
     }
 }
@@ -307,15 +307,17 @@ void Node::calCorrectHost(set<UINT32> localHostset, set<UINT32> globalHostset, c
  * return the hit nodeIdx 
  */
 UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& remainNodePath, bool staleFlag){
-    Stat::Workload_per_node[_nodeIdx]++;
+   
     UINT32 correctTimeStamp = (UINT32) Underlay::Inst()->global_guid_list[guidIdx].getLastUpdateTime();
     if (remainNodePath.size()==0) { //hit the replica host
         myTimestamp = correctTimeStamp;
+        Stat::Workload_per_node[_nodeIdx]._replicaWrkld++;
         return _nodeIdx;
     }
     UINT32 hitNodeIdx, nextHopNodeIdx;
     nextHopNodeIdx = remainNodePath[0];
     remainNodePath.erase(remainNodePath.begin());
+    Stat::Workload_per_node[_nodeIdx]._cacheWrkld++;
     for (UINT32 i = 0; i < _cache.size(); i++) {//lookup my cache
         if (_cache[i]._guidIdx == guidIdx) { //cache hit
             //_cache[i]._fromLastError++;

@@ -932,7 +932,6 @@ void Underlay::calQueryWorkload(){
     Util::Inst()->genHistInput(strgOutName.c_str(),totalRawWrkld,20, true);
     strgOutName = Settings::outFileName + "_QWrkld_cdf";
     Util::Inst()->genCDF(strgOutName.c_str(),NormalizedWrkld);
-    /*
     strgOutName = Settings::outFileName + "_qLatency_cdf";
     Util::Inst()->genCDF(strgOutName.c_str(),delay_results_v);    
     if (Settings::CacheOn) {
@@ -952,7 +951,6 @@ void Underlay::calQueryWorkload(){
         strgOutName = Settings::outFileName + "_ErrorCnt_cdf";
         Util::Inst()->genCDF(strgOutName.c_str(),Stat::Error_cnt_per_guid);
     }
-    */
 }
 /*
  generate query workload: independent of update

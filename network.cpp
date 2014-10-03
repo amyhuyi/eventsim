@@ -625,6 +625,7 @@ void Underlay::getQueryNodesByPoP(UINT32 guidIdx, vector<UINT32>& _queryNodes, v
     UINT32 randNum, randNum2, candidateNo;
     UINT32 cityIdx = global_node_table[global_guid_list[guidIdx].getCurrAddrNodeIdx()].getCityIdx();
     string currCountry = city_list[cityIdx].getCountry();
+    UINT32 remainQuota;
     if (exponent < -0.5) {
         //debug
         if (exponent <= -10) //just for testing
@@ -671,10 +672,11 @@ void Underlay::getQueryNodesByPoP(UINT32 guidIdx, vector<UINT32>& _queryNodes, v
             _queryNodes.pop_back();
         }
     } else {
+        remainQuota = totalNo%_queryNodes.size();
         for (UINT64 i = 0; i < _queryNodes.size(); i++) {
             curr_queryCnt._queryCnt=totalNo/_queryNodes.size();
-            if (i==(_queryNodes.size()-1)) {
-                curr_queryCnt._queryCnt+= totalNo%_queryNodes.size();
+            if (i<remainQuota) {
+                curr_queryCnt._queryCnt+= 1;
             }
             global_node_table[_queryNodes[i]]._queryWrkld_v.push_back(curr_queryCnt);
             _queryQuota.push_back(totalNo/_queryNodes.size());
@@ -928,10 +930,10 @@ void Underlay::calQueryWorkload(){
         totalRawWrkld.push_back(Stat::Workload_per_node[i]._cacheWrkld+Stat::Workload_per_node[i]._replicaWrkld);
         NormalizedWrkld.push_back((FLOAT32)(Stat::Workload_per_node[i]._cacheWrkld+Stat::Workload_per_node[i]._replicaWrkld)/(FLOAT32)unitQuryWrkld);
     }
-    strgOutName = Settings::outFileName + "_QWrkld_hist";
-    Util::Inst()->genHistInput(strgOutName.c_str(),totalRawWrkld,20, true);
-    strgOutName = Settings::outFileName + "_QWrkld_cdf";
-    Util::Inst()->genCDF(strgOutName.c_str(),NormalizedWrkld);
+    //strgOutName = Settings::outFileName + "_QWrkld_hist";
+    //Util::Inst()->genHistInput(strgOutName.c_str(),totalRawWrkld,20, true);
+    //strgOutName = Settings::outFileName + "_QWrkld_cdf";
+    //Util::Inst()->genCDF(strgOutName.c_str(),NormalizedWrkld);
     strgOutName = Settings::outFileName + "_qLatency_cdf";
     Util::Inst()->genCDF(strgOutName.c_str(),delay_results_v);    
     if (Settings::CacheOn) {

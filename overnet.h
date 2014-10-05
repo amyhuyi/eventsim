@@ -92,7 +92,7 @@ public:
         static bool balanceBase; // calculate baseline of workload balance
         static UINT32 QueryOriginBalance; //0-queries orginiate from a PoP, 1-from a city, 2-from a country, 3-from global
         static UINT32 CacheLookupLat; //cache lookup latency per hop in ms
-        static FLOAT32 UpdateFrqGUID; //update frequency per guid
+        static FLOAT32 UpdateFrqGUID; //update frequency in terms of query frequency for all GUIDs
 };
 
 typedef struct _Query_Latency{

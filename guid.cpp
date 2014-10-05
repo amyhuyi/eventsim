@@ -100,12 +100,14 @@ UINT32 GUID::getAddrASIdx(){
 
 bool GUID::increaseQeueryCnt(){
     _issuedQueryCnt ++;
+    /*
     if ((_issuedQueryCnt*_updateRate) >= 1) {
         simulateAnUpdate();
         _issuedQueryCnt =0;
         return true;
     }
-    return false;
+    return false;*/
+    return true;
 
 }
 
@@ -118,4 +120,6 @@ void GUID::simulateAnUpdate(){
     currUpdateTime ++;
     updateAddrNodeIdx(getNextAddrNodeIdx(),currUpdateTime);
     assert(getLastUpdateTime() == currUpdateTime);
+    //cout<<"guid="<<_guid<<"issued an update w query cnt ="<<_issuedQueryCnt<<endl;
+    _issuedQueryCnt=0;
 }

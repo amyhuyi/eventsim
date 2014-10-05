@@ -361,10 +361,10 @@ void Util::outWrkldDetail(const char* outfilename, vector<Wrkld_Count>& Wrkld_v)
         replicaWrkld_v.push_back(Wrkld_v[i]._replicaWrkld);
     }
     outfHdlr.close();
-    string outName = outfilename;
+    /*string outName = outfilename;
     outName += "cacheWrkld_hist";
     genHistInput(outName.c_str(), cacheWrkld_v, 20, true);
     outName = outfilename;
     outName += "repWrkld_hist";
-    genHistInput(outName.c_str(), replicaWrkld_v, 20, true);
+    genHistInput(outName.c_str(), replicaWrkld_v, 20, true);*/
 }

@@ -861,7 +861,7 @@ FLOAT64 Underlay::calSingleQueryWrkld(UINT64 currGUIDIdx, UINT32 currNodeIdx){
         }
     }
     queryPathNode.push_back(dstReplicahost);
-    Stat::QueryHopCnt.push_back(queryPathNode.size());
+    //Stat::QueryHopCnt.push_back(queryPathNode.size());
     debugQueryPathNode = queryPathNode;
     debugQueryPathNode.insert(debugQueryPathNode.begin(), currNodeIdx);
     hitNode= global_node_table[currNodeIdx].cacheLookup(currGUIDIdx, currTS, queryPathNode,false);
@@ -881,7 +881,8 @@ void Underlay::calQueryWorkload(){
     vector<UINT32> queryNodes;
     vector<UINT32> queryQuota,queryIssuer_v;
     vector<UINT32> delay_results_v;
-    UINT32 randNum, randNum2, currGUIDIdx, currQNodeIdx;
+    UINT32 randNum, randNum2, currGUIDIdx, currQNodeIdx, updateGUIDIdx;
+    UINT32 qCntfrmLstUpd=0;
     for (currGUIDIdx = 0; currGUIDIdx < global_guid_list.size(); currGUIDIdx++) {
         //getQueryNodesByPoP(currGUIDIdx,queryNodes,queryQuota,-0.4);
         if (Settings::QueryOriginBalance>0) {
@@ -901,6 +902,13 @@ void Underlay::calQueryWorkload(){
         randNum2 = Util::Inst()->GenInt(global_node_table[currQNodeIdx]._queryWrkld_v.size());
         currGUIDIdx = global_node_table[currQNodeIdx]._queryWrkld_v[randNum2]._guidIdx;
         delay_results_v.push_back((UINT32)calSingleQueryWrkld(currGUIDIdx, currQNodeIdx));
+        if (++qCntfrmLstUpd * Settings::UpdateFrqGUID >=1) {
+            updateGUIDIdx = Util::Inst()->GenInt(global_guid_list.size());
+            //stat on issued query for a guid update
+            Stat::QueryHopCnt.push_back(global_guid_list[updateGUIDIdx].getQueryCnt());
+            global_guid_list[updateGUIDIdx].simulateAnUpdate();
+            qCntfrmLstUpd=0;
+        }
         if ((-- global_node_table[currQNodeIdx]._queryWrkld_v[randNum2]._queryCnt)==0) {
             global_node_table[currQNodeIdx]._queryWrkld_v.erase(global_node_table[currQNodeIdx]._queryWrkld_v.begin()+randNum2);
         }
@@ -915,32 +923,13 @@ void Underlay::calQueryWorkload(){
     string strgOutName = Settings::outFileName;
     strgOutName = Settings::outFileName + "_QWrkld_scatter";
     Util::Inst()->outWrkldDetail(strgOutName.c_str(),Stat::Workload_per_node);
-    unsigned long long unitQuryWrkld = 1;
-    vector <FLOAT64> NormalizedWrkld;
-    vector <UINT32> totalRawWrkld;
-    for (UINT32 i = 0; i < Stat::Workload_per_node.size(); i++) {
-        unitQuryWrkld += (Stat::Workload_per_node[i]._cacheWrkld+Stat::Workload_per_node[i]._replicaWrkld);
-    }
-    unitQuryWrkld = unitQuryWrkld / Stat::Workload_per_node.size();
-    
-    //to continue here
-    //debug
-    cout<<"unitQuryWrkld: "<<unitQuryWrkld<<endl;   
-    for (UINT32 i = 0; i < Stat::Workload_per_node.size(); i++) {
-        totalRawWrkld.push_back(Stat::Workload_per_node[i]._cacheWrkld+Stat::Workload_per_node[i]._replicaWrkld);
-        NormalizedWrkld.push_back((FLOAT32)(Stat::Workload_per_node[i]._cacheWrkld+Stat::Workload_per_node[i]._replicaWrkld)/(FLOAT32)unitQuryWrkld);
-    }
-    //strgOutName = Settings::outFileName + "_QWrkld_hist";
-    //Util::Inst()->genHistInput(strgOutName.c_str(),totalRawWrkld,20, true);
-    //strgOutName = Settings::outFileName + "_QWrkld_cdf";
-    //Util::Inst()->genCDF(strgOutName.c_str(),NormalizedWrkld);
     strgOutName = Settings::outFileName + "_qLatency_cdf";
     Util::Inst()->genCDF(strgOutName.c_str(),delay_results_v);    
     if (Settings::CacheOn) {
         strgOutName = Settings::outFileName + "_cacheHitPerguid_cdf";
         Util::Inst()->genCDF(strgOutName.c_str(),Stat::CacheHit_per_guid);
-        //strgOutName = Settings::outFileName + "_QhopCnt_cdf";
-        //Util::Inst()->genCDF(strgOutName.c_str(),Stat::QueryHopCnt);
+        strgOutName = Settings::outFileName + "_QCntPerUpd_cdf";
+        Util::Inst()->genCDF(strgOutName.c_str(),Stat::QueryHopCnt);
         strgOutName = Settings::outFileName + "_QHitHopCnt_cdf";
         Util::Inst()->genCDF(strgOutName.c_str(),Stat::QueryHitHopCnt);
         vector<FLOAT64> errRate_v;

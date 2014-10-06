@@ -883,6 +883,7 @@ void Underlay::calQueryWorkload(){
     vector<UINT32> delay_results_v;
     UINT32 randNum, randNum2, currGUIDIdx, currQNodeIdx, updateGUIDIdx;
     UINT32 qCntfrmLstUpd=0;
+    UINT64 staleCnt=0;
     for (currGUIDIdx = 0; currGUIDIdx < global_guid_list.size(); currGUIDIdx++) {
         //getQueryNodesByPoP(currGUIDIdx,queryNodes,queryQuota,-0.4);
         if (Settings::QueryOriginBalance>0) {
@@ -906,6 +907,8 @@ void Underlay::calQueryWorkload(){
             updateGUIDIdx = Util::Inst()->GenInt(global_guid_list.size());
             //stat on issued query for a guid update
             Stat::QueryHopCnt.push_back(global_guid_list[updateGUIDIdx].getQueryCnt());
+            //debug
+            //cout<<"issued an update for guid "<<updateGUIDIdx<<" "<<endl;
             global_guid_list[updateGUIDIdx].simulateAnUpdate();
             qCntfrmLstUpd=0;
         }
@@ -934,9 +937,25 @@ void Underlay::calQueryWorkload(){
         Util::Inst()->genCDF(strgOutName.c_str(),Stat::QueryHitHopCnt);
         vector<FLOAT64> errRate_v;
         for (UINT32 i = 0; i < global_guid_list.size(); i++) {
-            if (global_guid_list[i].getPopularity())
+            /*if (Stat::Error_cnt_per_guid[i]) {
+                cout<<i<<"\t"<<Stat::Error_cnt_per_guid[i]<<"\t"<<global_guid_list[i].getPopularity()<<"\t";
+                if (global_guid_list[i].getPopularity()) {
+                    cout<<(FLOAT32)Stat::Error_cnt_per_guid[i]/(FLOAT32)global_guid_list[i].getPopularity();
+                }
+                cout<<endl;
+            }*/
+            staleCnt += Stat::Error_cnt_per_guid[i];
+            if (global_guid_list[i].getPopularity()){
                 errRate_v.push_back((FLOAT32)Stat::Error_cnt_per_guid[i]/(FLOAT32)global_guid_list[i].getPopularity());
+            }
         }
+        strgOutName = Settings::outFileName + "_ErrorRate";
+        ofstream outfHdlr;
+        outfHdlr.open(strgOutName.c_str(),ios::out | ios::in | ios:: trunc);
+        outfHdlr<<staleCnt<<"\t"<<delay_results_v.size()<<endl;
+        outfHdlr.close();
+        strgOutName = Settings::outFileName + "_ErrorScatter";
+        Util::Inst()->outErrorDetail(strgOutName.c_str());
         strgOutName = Settings::outFileName + "_ErrorRate_cdf";
         Util::Inst()->genCDF(strgOutName.c_str(),errRate_v);
         strgOutName = Settings::outFileName + "_ErrorCnt_cdf";

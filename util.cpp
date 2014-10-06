@@ -1,4 +1,5 @@
 #include "util.h"
+#include "network.h"
 
 Util* Util::_inst = NULL;
 
@@ -367,4 +368,18 @@ void Util::outWrkldDetail(const char* outfilename, vector<Wrkld_Count>& Wrkld_v)
     outName = outfilename;
     outName += "repWrkld_hist";
     genHistInput(outName.c_str(), replicaWrkld_v, 20, true);*/
+}
+
+void Util::outErrorDetail(const char* outfilename){
+    ofstream outfHdlr;
+    outfHdlr.open(outfilename,ios::out | ios::in | ios:: trunc);
+    for (UINT32 i = 0; i < Underlay::Inst()->global_guid_list.size(); i++) {
+        if (Stat::Error_cnt_per_guid[i]) {
+            outfHdlr<<Stat::Error_cnt_per_guid[i]<<"\t"<<Underlay::Inst()->global_guid_list[i].getPopularity()<<"\t";
+            if (Underlay::Inst()->global_guid_list[i].getPopularity()) {
+                outfHdlr<<(FLOAT32)Stat::Error_cnt_per_guid[i]/(FLOAT32)Underlay::Inst()->global_guid_list[i].getPopularity();
+            }
+            outfHdlr<<endl;
+        }
+    }
 }

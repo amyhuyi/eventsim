@@ -319,8 +319,9 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
     remainNodePath.erase(remainNodePath.begin());
     Stat::Workload_per_node[_nodeIdx]._cacheWrkld++;
     for (UINT32 i = 0; i < _cache.size(); i++) {//lookup my cache
+        //To do: delete all cache entries expired
         if (_cache[i]._guidIdx == guidIdx) { //cache hit
-            //_cache[i]._fromLastError++;
+            _cache[i]._fromLastError++;
             _cache[i]._hitCount++;
             if (_cache[i]._goThroughProb*_cache[i]._hitCount >=1) {
                 hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath,staleFlag);
@@ -330,12 +331,18 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
                 if (_cache[i]._timestamp < correctTimeStamp) {
                     if (!staleFlag) {
                         Stat::Error_cnt_per_guid[guidIdx]++;
+                        Error_Entry currErrentry;
+                        currErrentry._popularity = Underlay::Inst()->global_guid_list[guidIdx].getPopularity();
+                        currErrentry._TTL = Settings::CurrentClock - _cache[i]._createtime;
+                        currErrentry._QHitsFrmLstErr = _cache[i]._fromLastError;
+                        Stat::Error_stat.push_back(currErrentry);
                     }
                     hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath, true);
                     _cache[i]._timestamp = myTimestamp;
-                    //_cache[i]._errorRate = 1.00/(FLOAT32)_cache[i]._fromLastError;
-                    //_cache[i]._fromLastError =0;
-                    //_cache[i]._goThroughProb = 0.7;
+                    //To continue: adapt goThrough
+                    _cache[i]._prevFrmLstErr = _cache[i]._fromLastError;
+                    _cache[i]._fromLastError =0;
+                    //_cache[i]._goThroughProb = ??;
                 } else{
                     myTimestamp = _cache[i]._timestamp;
                     hitNodeIdx = _nodeIdx;
@@ -344,6 +351,7 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
             }
             assert(_cache[i]._guidIdx == guidIdx && _cache[i]._timestamp == correctTimeStamp);
             Cache_Entry currCacheEntry = _cache[i];
+            currCacheEntry._createtime = Settings::CurrentClock;
             _cache.erase(_cache.begin()+i);
             _cache.push_back(currCacheEntry);
             return hitNodeIdx;
@@ -354,7 +362,7 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
     hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath,staleFlag);
     
     if (!staleFlag) {
-        Cache_Entry currCacheEntry (guidIdx, myTimestamp, 0, Settings::GoThroughProb);
+        Cache_Entry currCacheEntry (guidIdx, myTimestamp, Settings::CurrentClock, Settings::GoThroughProb);
         if (_cache.size() >= Settings::CachePerc*Underlay::Inst()->global_guid_list.size()) {
             _cache.erase(_cache.begin()); //creation time can be handled here  
         } 

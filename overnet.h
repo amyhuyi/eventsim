@@ -93,6 +93,8 @@ public:
         static UINT32 QueryOriginBalance; //0-queries orginiate from a PoP, 1-from a city, 2-from a country, 3-from global
         static UINT32 CacheLookupLat; //cache lookup latency per hop in ms
         static FLOAT32 UpdateFrqGUID; //update frequency in terms of query frequency for all GUIDs
+        static UINT32 CurrentClock;
+        static UINT32 QueryPerClock;
 };
 
 typedef struct _Query_Latency{
@@ -128,11 +130,11 @@ typedef struct _Cache_Entry{
     UINT32 _createtime; //creation time of this cache entry
     FLOAT32 _goThroughProb;
     UINT32 _hitCount; //to determine go through or not
-    UINT32 _fromLastError; //hit count from last stale retrieval, to calculate error rate
-    FLOAT32 _errorRate; // no. of stale retrieval divided by entry's total retrieval
-    _Cache_Entry (UINT32 guidIdx, UINT32 timestmp=0, UINT32 creation=0, FLOAT32 gothrough=0.01):_guidIdx(guidIdx),
+    UINT32 _fromLastError; //hit count from last stale retrieval, indicating current update freq
+    UINT32 _prevFrmLstErr; // old version of _fromLastError, to indicate update freq change 
+    _Cache_Entry (UINT32 guidIdx, UINT32 timestmp=0, UINT32 creation=0, FLOAT32 gothrough=0):_guidIdx(guidIdx),
            _timestamp(timestmp),_createtime(creation),_goThroughProb(gothrough)
-           { _hitCount=0; _errorRate=0;_fromLastError=0;}
+           { _hitCount=0; _prevFrmLstErr=0;_fromLastError=0;}
 } Cache_Entry;
 
 typedef struct _Retry_Count{
@@ -151,6 +153,16 @@ typedef struct _Retry_Count{
     }
 } Retry_Count;
 
+typedef struct _Error_Entry{
+    UINT64 _popularity;
+    UINT32 _TTL;
+    UINT32 _QHitsFrmLstErr;
+    bool operator < (const struct _Error_Entry& errEntry) const
+    {
+        return (_popularity < errEntry._popularity);
+    }
+} Error_Entry;
+
 
 class Stat
 {
@@ -166,6 +178,7 @@ public:
         static vector<Retry_Count> DHT_RetryCnt; //all K host failed, then a DHT retry
         static vector<UINT32> Migration_per_node;
         static vector<UINT32> Error_cnt_per_guid; // first record the error count, then compute the rate
+        static vector<Error_Entry> Error_stat;
         /*PING overhead to maintain node table consistency
          *only record counts of extra ping during simulation
          *final process: ping counts*ping size

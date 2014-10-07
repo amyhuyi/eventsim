@@ -882,7 +882,7 @@ void Underlay::calQueryWorkload(){
     vector<UINT32> queryQuota,queryIssuer_v;
     vector<UINT32> delay_results_v;
     UINT32 randNum, randNum2, currGUIDIdx, currQNodeIdx, updateGUIDIdx;
-    UINT32 qCntfrmLstUpd=0;
+    UINT32 qCntfrmLstUpd=0, qCntfrmLstClk=0;
     UINT64 staleCnt=0;
     for (currGUIDIdx = 0; currGUIDIdx < global_guid_list.size(); currGUIDIdx++) {
         //getQueryNodesByPoP(currGUIDIdx,queryNodes,queryQuota,-0.4);
@@ -903,6 +903,10 @@ void Underlay::calQueryWorkload(){
         randNum2 = Util::Inst()->GenInt(global_node_table[currQNodeIdx]._queryWrkld_v.size());
         currGUIDIdx = global_node_table[currQNodeIdx]._queryWrkld_v[randNum2]._guidIdx;
         delay_results_v.push_back((UINT32)calSingleQueryWrkld(currGUIDIdx, currQNodeIdx));
+        if (++qCntfrmLstClk >= Settings::QueryPerClock) {
+            Settings::CurrentClock ++;
+            qCntfrmLstClk =0;
+        }
         if (++qCntfrmLstUpd * Settings::UpdateFrqGUID >=1) {
             updateGUIDIdx = Util::Inst()->GenInt(global_guid_list.size());
             //stat on issued query for a guid update
@@ -937,13 +941,6 @@ void Underlay::calQueryWorkload(){
         Util::Inst()->genCDF(strgOutName.c_str(),Stat::QueryHitHopCnt);
         vector<FLOAT64> errRate_v;
         for (UINT32 i = 0; i < global_guid_list.size(); i++) {
-            /*if (Stat::Error_cnt_per_guid[i]) {
-                cout<<i<<"\t"<<Stat::Error_cnt_per_guid[i]<<"\t"<<global_guid_list[i].getPopularity()<<"\t";
-                if (global_guid_list[i].getPopularity()) {
-                    cout<<(FLOAT32)Stat::Error_cnt_per_guid[i]/(FLOAT32)global_guid_list[i].getPopularity();
-                }
-                cout<<endl;
-            }*/
             staleCnt += Stat::Error_cnt_per_guid[i];
             if (global_guid_list[i].getPopularity()){
                 errRate_v.push_back((FLOAT32)Stat::Error_cnt_per_guid[i]/(FLOAT32)global_guid_list[i].getPopularity());
@@ -953,6 +950,12 @@ void Underlay::calQueryWorkload(){
         ofstream outfHdlr;
         outfHdlr.open(strgOutName.c_str(),ios::out | ios::in | ios:: trunc);
         outfHdlr<<staleCnt<<"\t"<<delay_results_v.size()<<endl;
+        outfHdlr.close();
+        strgOutName = Settings::outFileName + "_ErrorStat";
+        outfHdlr.open(strgOutName.c_str(),ios::out | ios::in | ios:: trunc);
+        for (UINT32 i = 0;  i < Stat::Error_stat.size(); i++) {
+            outfHdlr<<Stat::Error_stat[i]._popularity<<"\t"<<Stat::Error_stat[i]._TTL<<"\t"<<Stat::Error_stat[i]._QHitsFrmLstErr<<endl;
+        }
         outfHdlr.close();
         strgOutName = Settings::outFileName + "_ErrorScatter";
         Util::Inst()->outErrorDetail(strgOutName.c_str());

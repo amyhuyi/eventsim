@@ -16,7 +16,8 @@ vector<Query_Latency> Stat::Query_latency_time;
 vector<Query_Latency> Stat::Insertion_latency_time;
 vector<Retry_Count> Stat::Retry_Cnt;
 vector<Retry_Count> Stat::DHT_RetryCnt;
-vector<UINT32> Stat::Error_cnt_per_guid; 
+vector<UINT32> Stat::Error_cnt_per_guid;
+vector<Error_Entry> Stat::Error_stat;
 vector<UINT32> Stat::Migration_per_node;
 UINT32 Stat::Premature_joins=0;
 UINT32 Stat::Premature_leaves=0;
@@ -53,6 +54,8 @@ UINT32 Settings::QueryOriginBalance =3;
 FLOAT32 Settings::CachePerc = 0.1;
 FLOAT32 Settings::GoThroughProb = 0.001;
 FLOAT32 Settings::UpdateFrqGUID = 0.01;
+UINT32 Settings::CurrentClock =0;
+UINT32 Settings::QueryPerClock =10;
 /*!
  *  @brief Computes floor(log2(n))
  *  Works by finding position of MSB set.
@@ -284,6 +287,12 @@ void ParseArg(const char * argv)
 	ss <<arg.substr(14);
 	ss >>Settings::UpdateFrqGUID;
     }
+    else if (arg.find("queryperclock=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(14);
+	ss >>Settings::QueryPerClock;
+    }
 }
 
 int main(int argc, const char* argv[])
@@ -328,6 +337,8 @@ int main(int argc, const char* argv[])
     cout<<"Settings::GoThroughProb="<<Settings::GoThroughProb<<endl;
     cout<<"Settings::UpdateFrqGUID="<<Settings::UpdateFrqGUID<<endl;
     cout<<"Settings::QueryOriginBalance="<<Settings::QueryOriginBalance<<endl;
+    cout<<"Settings::CurrentClock="<<Settings::CurrentClock<<endl;
+    cout<<"Settings::QueryPerClock="<<Settings::QueryPerClock<<endl;
     if (Settings::Geo_Lat_On) {
         cout<<"Settings::Geo_Lat_On = true"<<endl;
     } else {

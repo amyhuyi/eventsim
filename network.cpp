@@ -317,11 +317,16 @@ void Underlay::InitializeWorkload(){
         assignedGUID.insert(currGUID);
         workload_cities_guidquota[currCityIdx]--;
     }
-    //vector<UINT32> popularity_stat;
+    updateGUIDs_v.clear();
     for (UINT64 i = 0; i < global_guid_list.size(); i++) {
         initializeMobility(i);
-        //popularity_stat.push_back(global_guid_list[i].getPopularity());
+        //assign guid based on city popularity
+        //select a percentage of guids to be mobile naturally proportional to city population
+        if (global_guid_list[i].getMobility()== 'L') {
+            updateGUIDs_v.push_back(i);
+        }
     }
+    //cout<<"total guid"<<global_guid_list.size()<<",updatePercentageg="<<Settings::LocalMobilityPerc<<",update guids= "<<updateGUIDs_v.size()<<endl;
     genOutFileName();
     /*sort(popularity_stat.begin(), popularity_stat.end());
     string outfilename = Settings::outFileName;
@@ -354,9 +359,9 @@ void Underlay::genOutFileName(){
     ss.str("");
     if (Settings::DeployOnlyGW) {
         strgOutName += "_DplyGW";  
-    } else {
+    } /*else {
         strgOutName += "_DplyAll";
-    }
+    }*///omit deply all as default, show deploy gw 
     if (Settings::CacheOn) {
         strgOutName += "_CacheOn";
         ss <<Settings::CacheOn;
@@ -374,15 +379,18 @@ void Underlay::genOutFileName(){
         ss <<Settings::UpdateFrqGUID;
         strgOutName += ss.str();
         ss.str("");
-        
+        strgOutName +="_UpdPerc";
+        ss <<Settings::LocalMobilityPerc;
+        strgOutName += ss.str();
+        ss.str("");
     } else {
         strgOutName += "_CacheOff";
     }
     if (Settings::balanceBase) {
         strgOutName += "_RndSlct";
-    } else {
+    } /*else {
         strgOutName += "_ShrtSlct";
-    }
+    }*/
     Settings::outFileName = strgOutName;
 }
 
@@ -908,10 +916,11 @@ void Underlay::calQueryWorkload(){
             qCntfrmLstClk =0;
         }
         if (++qCntfrmLstUpd * Settings::UpdateFrqGUID >=1) {
-            updateGUIDIdx = Util::Inst()->GenInt(global_guid_list.size());
-            //stat on issued query for a guid update
-            Stat::QueryHopCnt.push_back(global_guid_list[updateGUIDIdx].getQueryCnt());
+            //get a GUID to simulate update
+            updateGUIDIdx = Util::Inst()->GenInt(updateGUIDs_v.size());
+            updateGUIDIdx = updateGUIDs_v[updateGUIDIdx];
             //debug
+            Stat::QueryHopCnt[updateGUIDIdx]++;
             //cout<<"issued an update for guid "<<updateGUIDIdx<<" "<<endl;
             global_guid_list[updateGUIDIdx].simulateAnUpdate();
             qCntfrmLstUpd=0;
@@ -935,7 +944,7 @@ void Underlay::calQueryWorkload(){
     if (Settings::CacheOn) {
         strgOutName = Settings::outFileName + "_cacheHitPerguid_cdf";
         Util::Inst()->genCDF(strgOutName.c_str(),Stat::CacheHit_per_guid);
-        strgOutName = Settings::outFileName + "_QCntPerUpd_cdf";
+        strgOutName = Settings::outFileName + "_UptPerGUID_cdf";
         Util::Inst()->genCDF(strgOutName.c_str(),Stat::QueryHopCnt);
         strgOutName = Settings::outFileName + "_QHitHopCnt_cdf";
         Util::Inst()->genCDF(strgOutName.c_str(),Stat::QueryHitHopCnt);
@@ -1267,6 +1276,7 @@ void Underlay::PrepareWorkloadCal(){
     for (UINT64 guidIdx = 0; guidIdx < global_guid_list.size(); guidIdx++) {
         Stat::Error_cnt_per_guid.push_back(0);
         Stat::CacheHit_per_guid.push_back(0);
+        Stat::QueryHopCnt.push_back(0);//debug used for recording updates per guid
         glbCalHostSet.clear();
         global_guid_list[guidIdx]._replica_hosts.clear();
         if(Settings::GNRS_K){

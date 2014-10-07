@@ -60,6 +60,7 @@ public:
     vector<UINT32> gw_cities;
     vector<UINT32> deployed_cities;
     vector<UINT32> workload_cities;
+    vector<UINT32> updateGUIDs_v;
     static Underlay* Inst();
     static void CreateInst(const char* cityFile,const char* routeFile, const char* asFile, const char* predFile);
     UINT32 numericDistance(UINT32 hashID1, UINT32 hashID2);

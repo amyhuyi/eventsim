@@ -307,7 +307,6 @@ void Node::calCorrectHost(set<UINT32> localHostset, set<UINT32> globalHostset, c
  * return the hit nodeIdx 
  */
 UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& remainNodePath, bool staleFlag){
-   
     UINT32 correctTimeStamp = (UINT32) Underlay::Inst()->global_guid_list[guidIdx].getLastUpdateTime();
     if (remainNodePath.size()==0) { //hit the replica host
         myTimestamp = correctTimeStamp;
@@ -324,7 +323,7 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
             _cache[i]._fromLastError++;
             _cache[i]._hitCount++;
             if (_cache[i]._goThroughProb*_cache[i]._hitCount >=1) {
-                hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath,staleFlag);
+                hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath,true);
                 _cache[i]._timestamp = myTimestamp;
                 _cache[i]._hitCount=0;
             }else{

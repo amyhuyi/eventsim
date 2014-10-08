@@ -345,7 +345,9 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
                 } else{
                     myTimestamp = _cache[i]._timestamp;
                     hitNodeIdx = _nodeIdx;
-                    Stat::CacheHit_per_guid[guidIdx]++;
+                    if (!staleFlag) {
+                        Stat::CacheHit_per_guid[guidIdx]++;
+                    }
                 }              
             }
             assert(_cache[i]._guidIdx == guidIdx && _cache[i]._timestamp == correctTimeStamp);

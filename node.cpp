@@ -317,8 +317,15 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
     nextHopNodeIdx = remainNodePath[0];
     remainNodePath.erase(remainNodePath.begin());
     Stat::Workload_per_node[_nodeIdx]._cacheWrkld++;
+    if (Settings::TTL) {
+        while (_cache.size() && (Settings::CurrentClock-_cache.front()._createtime)>= Settings::TTL) {
+            _cache.erase(_cache.begin());
+        }
+    }
+
     for (UINT32 i = 0; i < _cache.size(); i++) {//lookup my cache
-        //To do: delete all cache entries expired
+        //debug
+        assert(Settings::TTL==0 || (Settings::CurrentClock-_cache[i]._createtime)<= Settings::TTL);
         if (_cache[i]._guidIdx == guidIdx) { //cache hit
             _cache[i]._fromLastError++;
             _cache[i]._hitCount++;

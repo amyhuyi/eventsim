@@ -56,6 +56,7 @@ FLOAT32 Settings::GoThroughProb = 0.001;
 FLOAT32 Settings::UpdateFrqGUID = 0.01;
 UINT32 Settings::CurrentClock =0;
 UINT32 Settings::QueryPerClock =10;
+UINT32 Settings::TTL = 1000;
 /*!
  *  @brief Computes floor(log2(n))
  *  Works by finding position of MSB set.
@@ -107,6 +108,12 @@ void ParseArg(const char * argv)
 	stringstream ss (stringstream::in | stringstream::out);
 	ss <<arg.substr(11);
 	ss >>Settings::Regional_K;
+    }
+    else if (arg.find("ttl=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(4);
+	ss >>Settings::TTL;
     }
     else if (arg.find("endtime=") != string::npos)
     {
@@ -339,6 +346,7 @@ int main(int argc, const char* argv[])
     cout<<"Settings::QueryOriginBalance="<<Settings::QueryOriginBalance<<endl;
     cout<<"Settings::CurrentClock="<<Settings::CurrentClock<<endl;
     cout<<"Settings::QueryPerClock="<<Settings::QueryPerClock<<endl;
+    cout<<"Settings::TTL="<<Settings::TTL<<endl;
     if (Settings::Geo_Lat_On) {
         cout<<"Settings::Geo_Lat_On = true"<<endl;
     } else {

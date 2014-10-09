@@ -95,6 +95,7 @@ public:
         static FLOAT32 UpdateFrqGUID; //update frequency in terms of query frequency for all GUIDs
         static UINT32 CurrentClock;
         static UINT32 QueryPerClock;
+        static UINT32 TTL;
 };
 
 typedef struct _Query_Latency{

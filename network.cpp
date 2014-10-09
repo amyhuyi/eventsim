@@ -383,6 +383,11 @@ void Underlay::genOutFileName(){
         ss <<Settings::LocalMobilityPerc;
         strgOutName += ss.str();
         ss.str("");
+        strgOutName +="_TTL";
+        ss <<Settings::TTL;
+        strgOutName += ss.str();
+        ss.str("");
+        
     } else {
         strgOutName += "_CacheOff";
     }

@@ -96,6 +96,7 @@ public:
         static UINT32 CurrentClock;
         static UINT32 QueryPerClock;
         static UINT32 TTL;
+        static bool AdaptGo;
 };
 
 typedef struct _Query_Latency{
@@ -156,7 +157,7 @@ typedef struct _Retry_Count{
 
 typedef struct _Error_Entry{
     UINT64 _popularity;
-    UINT32 _TTL;
+    FLOAT32 _TTL;
     UINT32 _QHitsFrmLstErr;
     bool operator < (const struct _Error_Entry& errEntry) const
     {

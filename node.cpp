@@ -335,20 +335,23 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
                 _cache[i]._hitCount=0;
             }else{
                 if (_cache[i]._timestamp < correctTimeStamp) {
+                    if (Settings::AdaptGo && _cache[i]._fromLastError>1) {
+                        _cache[i]._goThroughProb = 1.00/(FLOAT32)_cache[i]._fromLastError;
+                        _cache[i]._goThroughProb += 0.01;
+                    }
                     if (!staleFlag) {
                         Stat::Error_cnt_per_guid[guidIdx]++;
                         Error_Entry currErrentry;
                         currErrentry._popularity = Underlay::Inst()->global_guid_list[guidIdx].getPopularity();
-                        currErrentry._TTL = Settings::CurrentClock - _cache[i]._createtime;
+                        //currErrentry._TTL = Settings::CurrentClock - _cache[i]._createtime;
+                        currErrentry._TTL = _cache[i]._goThroughProb;
                         currErrentry._QHitsFrmLstErr = _cache[i]._fromLastError;
                         Stat::Error_stat.push_back(currErrentry);
                     }
                     hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath, true);
                     _cache[i]._timestamp = myTimestamp;
-                    //To continue: adapt goThrough
                     _cache[i]._prevFrmLstErr = _cache[i]._fromLastError;
                     _cache[i]._fromLastError =0;
-                    //_cache[i]._goThroughProb = ??;
                 } else{
                     myTimestamp = _cache[i]._timestamp;
                     hitNodeIdx = _nodeIdx;
@@ -370,7 +373,10 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
     hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath,staleFlag);
     
     if (!staleFlag) {
-        Cache_Entry currCacheEntry (guidIdx, myTimestamp, Settings::CurrentClock, Settings::GoThroughProb);
+        Cache_Entry currCacheEntry (guidIdx, myTimestamp, Settings::CurrentClock, 0);
+        if (!Settings::AdaptGo) {
+            currCacheEntry._goThroughProb = Settings::GoThroughProb;
+        }
         if (_cache.size() >= Settings::CachePerc*Underlay::Inst()->global_guid_list.size()) {
             _cache.erase(_cache.begin()); //creation time can be handled here  
         } 

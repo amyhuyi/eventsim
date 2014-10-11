@@ -57,6 +57,7 @@ FLOAT32 Settings::UpdateFrqGUID = 0.01;
 UINT32 Settings::CurrentClock =0;
 UINT32 Settings::QueryPerClock =10;
 UINT32 Settings::TTL = 1000;
+bool Settings::AdaptGo = false;
 /*!
  *  @brief Computes floor(log2(n))
  *  Works by finding position of MSB set.
@@ -300,6 +301,12 @@ void ParseArg(const char * argv)
 	ss <<arg.substr(14);
 	ss >>Settings::QueryPerClock;
     }
+    else if (arg.find("adaptgo=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(8);
+	ss >>Settings::AdaptGo;
+    }
 }
 
 int main(int argc, const char* argv[])
@@ -347,6 +354,7 @@ int main(int argc, const char* argv[])
     cout<<"Settings::CurrentClock="<<Settings::CurrentClock<<endl;
     cout<<"Settings::QueryPerClock="<<Settings::QueryPerClock<<endl;
     cout<<"Settings::TTL="<<Settings::TTL<<endl;
+    
     if (Settings::Geo_Lat_On) {
         cout<<"Settings::Geo_Lat_On = true"<<endl;
     } else {
@@ -366,6 +374,11 @@ int main(int argc, const char* argv[])
         cout<<"Settings::balanceBase = true"<<endl;
     } else {
         cout<<"Settings::balanceBase = false"<<endl;
+    }   
+    if (Settings::AdaptGo) {
+        cout<<"Settings::AdaptGo = true"<<endl;
+    } else {
+        cout<<"Settings::AdaptGo = false"<<endl;
     }
     Underlay::Inst()->InitializeStat(); //finish node initialization, prepare node stat
     Underlay::Inst()->InitializeWorkload(); //finish guid init   

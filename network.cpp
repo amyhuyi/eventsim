@@ -367,18 +367,18 @@ void Underlay::genOutFileName(){
         ss <<Settings::CacheOn;
         strgOutName += ss.str();
         ss.str("");
-        strgOutName += "_GoThru";
-        ss <<Settings::GoThroughProb;
-        strgOutName += ss.str();
-        ss.str("");
         if (Settings::AdaptGo) {
             strgOutName += "_aptGo";
         } else {
-            strgOutName +="_CachePerc";
-            ss <<Settings::CachePerc;
+            strgOutName += "_GoThru";
+            ss <<Settings::GoThroughProb;
             strgOutName += ss.str();
             ss.str("");
         }
+        strgOutName +="_CachePerc";
+        ss <<Settings::CachePerc;
+        strgOutName += ss.str();
+        ss.str("");
         strgOutName +="_UpdFrq";
         ss <<Settings::UpdateFrqGUID;
         strgOutName += ss.str();

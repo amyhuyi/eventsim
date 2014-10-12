@@ -25,6 +25,8 @@ public:
         vector<UINT32> _address_q; //queue of the Node (PoP) Idx this GUID traverses among
         vector<FLOAT64> _updateTime_q;
         vector<UINT32> _replica_hosts;
+        vector<UINT32> _errorCacheNodes;
+        set<UINT32> _distinctErrCacheNodes;
         GUID (UINT32 id, UINT32 nodeIdx, FLOAT64 time, char mobilityDegree, UINT64 popularity); // compute objID from GUID and GNRS space range
 	~GUID();
 	UINT32 getGUID();

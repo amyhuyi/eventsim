@@ -379,7 +379,8 @@ void Util::outErrorDetail(const char* outfilename){
             if (Underlay::Inst()->global_guid_list[i].getPopularity()) {
                 outfHdlr<<(FLOAT32)Stat::Error_cnt_per_guid[i]/(FLOAT32)Underlay::Inst()->global_guid_list[i].getPopularity();
             }
-            outfHdlr<<endl;
+            outfHdlr<<"\t"<<Underlay::Inst()->global_guid_list[i]._errorCacheNodes.size()<<"\t"
+                    <<Underlay::Inst()->global_guid_list[i]._distinctErrCacheNodes.size()<<endl;
         }
     }
 }

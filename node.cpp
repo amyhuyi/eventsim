@@ -341,6 +341,8 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
                     }
                     if (!staleFlag) {
                         Stat::Error_cnt_per_guid[guidIdx]++;
+                        Underlay::Inst()->global_guid_list[guidIdx]._errorCacheNodes.push_back(_nodeIdx);
+                        Underlay::Inst()->global_guid_list[guidIdx]._distinctErrCacheNodes.insert(_nodeIdx);
                         Error_Entry currErrentry;
                         currErrentry._popularity = Underlay::Inst()->global_guid_list[guidIdx].getPopularity();
                         //currErrentry._TTL = Settings::CurrentClock - _cache[i]._createtime;

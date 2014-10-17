@@ -25,7 +25,8 @@ private:
     
 public:
     UINT32 _hashID; //hash value of the node in GNRS space, uniquely identify a node
-    vector<Query_Count> _queryWrkld_v;
+    vector<Query_Count> _queryWrkld_v; //query workload of this simulation setting
+    vector<Query_Count> _currWrkld_v; //query workload of current round
     vector<Cache_Entry> _cache;
     Node (UINT32 hashID, UINT32 asIdx, FLOAT64 time);
     ~Node();

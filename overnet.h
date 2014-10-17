@@ -97,6 +97,8 @@ public:
         static UINT32 QueryPerClock;
         static UINT32 TTL;
         static bool AdaptGo;
+        static UINT32 QWrkldRounds; //no. of simulation rounds for calculating query workload
+        static UINT64 totalErrorCnt;
 };
 
 typedef struct _Query_Latency{

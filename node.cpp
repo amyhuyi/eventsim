@@ -341,13 +341,14 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
                     }
                     if (!staleFlag) {
                         Stat::Error_cnt_per_guid[guidIdx]++;
+                        Settings::totalErrorCnt++;
                         Underlay::Inst()->global_guid_list[guidIdx]._distinctErrCacheNodes.insert(_nodeIdx);
                         Error_Entry currErrentry;
                         currErrentry._popularity = Underlay::Inst()->global_guid_list[guidIdx].getPopularity();
                         //currErrentry._TTL = Settings::CurrentClock - _cache[i]._createtime;
-                        currErrentry._TTL = _cache[i]._goThroughProb;
-                        currErrentry._QHitsFrmLstErr = _cache[i]._fromLastError;
-                        Stat::Error_stat.push_back(currErrentry);
+                        //currErrentry._TTL = _cache[i]._goThroughProb;
+                        //currErrentry._QHitsFrmLstErr = _cache[i]._fromLastError;
+                        //Stat::Error_stat.push_back(currErrentry);
                     }
                     hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath, true);
                     _cache[i]._timestamp = myTimestamp;
@@ -357,7 +358,7 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
                     myTimestamp = _cache[i]._timestamp;
                     hitNodeIdx = _nodeIdx;
                     if (!staleFlag) {
-                        Stat::CacheHit_per_guid[guidIdx]++;
+                        //Stat::CacheHit_per_guid[guidIdx]++;
                     }
                 }              
             }

@@ -58,6 +58,8 @@ UINT32 Settings::CurrentClock =0;
 UINT32 Settings::QueryPerClock =10;
 UINT32 Settings::TTL = 1000;
 bool Settings::AdaptGo = false;
+UINT32 Settings::QWrkldRounds =1;
+UINT64 Settings::totalErrorCnt =0;
 /*!
  *  @brief Computes floor(log2(n))
  *  Works by finding position of MSB set.
@@ -306,6 +308,12 @@ void ParseArg(const char * argv)
 	stringstream ss (stringstream::in | stringstream::out);
 	ss <<arg.substr(8);
 	ss >>Settings::AdaptGo;
+    }
+    else if (arg.find("qwrkldrounds=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(13);
+	ss >>Settings::QWrkldRounds;
     }
 }
 

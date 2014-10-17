@@ -379,8 +379,12 @@ void Underlay::genOutFileName(){
         ss <<Settings::CachePerc;
         strgOutName += ss.str();
         ss.str("");
-        strgOutName +="_UpdFrq";
+        strgOutName +="_StrtUpdFrq";
         ss <<Settings::UpdateFrqGUID;
+        strgOutName += ss.str();
+        ss.str("");
+        strgOutName +="_Rnd";
+        ss <<Settings::QWrkldRounds;
         strgOutName += ss.str();
         ss.str("");
         strgOutName +="_UpdPerc";
@@ -829,7 +833,7 @@ UINT32 Underlay::calCacheLatOverhead(vector<UINT32> pathNodeIdx, UINT32 hitNodeI
             break;
         }
     }
-    Stat::QueryHitHopCnt.push_back(hopCount); //record how many queries hit cache in the middle of the route
+    //Stat::QueryHitHopCnt.push_back(hopCount); //record how many queries hit cache in the middle of the route
     //debug
     if (hopCount == 102) {
         cout<<"No hit query: hit nodeIdx= "<<hitNodeIdx<<". Route info:";
@@ -889,18 +893,56 @@ FLOAT64 Underlay::calSingleQueryWrkld(UINT64 currGUIDIdx, UINT32 currNodeIdx){
     return minDistance*2;
 }
 
+void Underlay::oneRoundQueryWrkld(vector<UINT32>& delay_results_v, FLOAT32 updateFreq){
+    vector<UINT32> queryIssuer_v;
+    UINT32 randNum, randNum2, currGUIDIdx, currQNodeIdx, updateGUIDIdx;
+    UINT32 qCntfrmLstUpd=0, qCntfrmLstClk=0;
+    for (UINT32 i = 0;  i < global_guid_list.size(); i++) {
+        Stat::Error_cnt_per_guid[i]=0;
+    }
+
+    for (UINT32 i = 0;  i<global_node_table.size(); i++) {
+        if (global_node_table[i]._queryWrkld_v.size()) {
+            global_node_table[i]._currWrkld_v = global_node_table[i]._queryWrkld_v;
+            queryIssuer_v.push_back(i);
+        }
+    }    
+    while (queryIssuer_v.size()) {
+        randNum = Util::Inst()->GenInt(queryIssuer_v.size());
+        currQNodeIdx = queryIssuer_v[randNum];
+        randNum2 = Util::Inst()->GenInt(global_node_table[currQNodeIdx]._currWrkld_v.size());
+        currGUIDIdx = global_node_table[currQNodeIdx]._currWrkld_v[randNum2]._guidIdx;
+        delay_results_v.push_back((UINT32)calSingleQueryWrkld(currGUIDIdx, currQNodeIdx));
+        if (++qCntfrmLstClk >= Settings::QueryPerClock) {
+            Settings::CurrentClock ++;
+            qCntfrmLstClk =0;
+        }
+        if (++qCntfrmLstUpd * updateFreq >=1) {
+            //get a GUID to simulate update
+            updateGUIDIdx = Util::Inst()->GenInt(updateGUIDs_v.size());
+            updateGUIDIdx = updateGUIDs_v[updateGUIDIdx];
+            global_guid_list[updateGUIDIdx].simulateAnUpdate();
+            qCntfrmLstUpd=0;
+        }
+        if ((-- global_node_table[currQNodeIdx]._currWrkld_v[randNum2]._queryCnt)==0) {
+            global_node_table[currQNodeIdx]._currWrkld_v.erase(global_node_table[currQNodeIdx]._currWrkld_v.begin()+randNum2);
+        }
+        if (global_node_table[currQNodeIdx]._currWrkld_v.size()==0) {
+            queryIssuer_v.erase(queryIssuer_v.begin()+randNum);
+        }     
+    }
+}
+
 void Underlay::calQueryWorkload(){
     assert(Stat::Workload_per_node.size() == global_node_table.size());
-    assert(Stat::CacheHit_per_guid.size() == global_guid_list.size());
     for (UINT32 i = 0; i < global_node_table.size(); i++) {
         global_node_table[i]._queryWrkld_v.clear();     
     }
     vector<UINT32> queryNodes;
-    vector<UINT32> queryQuota,queryIssuer_v;
+    vector<UINT32> queryQuota;
     vector<UINT32> delay_results_v;
-    UINT32 randNum, randNum2, currGUIDIdx, currQNodeIdx, updateGUIDIdx;
-    UINT32 qCntfrmLstUpd=0, qCntfrmLstClk=0;
-    UINT64 staleCnt=0;
+    UINT32 currGUIDIdx;
+    UINT64 queryUntlLstRnd=0;
     for (currGUIDIdx = 0; currGUIDIdx < global_guid_list.size(); currGUIDIdx++) {
         //getQueryNodesByPoP(currGUIDIdx,queryNodes,queryQuota,-0.4);
         if (Settings::QueryOriginBalance>0) {
@@ -909,79 +951,44 @@ void Underlay::calQueryWorkload(){
             getQueryNodesByPoP(currGUIDIdx,queryNodes,queryQuota,-11.0);
         }
     }
-    for (UINT32 i = 0;  i<global_node_table.size(); i++) {
-        if (global_node_table[i]._queryWrkld_v.size()) {
-            queryIssuer_v.push_back(i);
-        }
-    }
-    while (queryIssuer_v.size()) {
-        randNum = Util::Inst()->GenInt(queryIssuer_v.size());
-        currQNodeIdx = queryIssuer_v[randNum];
-        randNum2 = Util::Inst()->GenInt(global_node_table[currQNodeIdx]._queryWrkld_v.size());
-        currGUIDIdx = global_node_table[currQNodeIdx]._queryWrkld_v[randNum2]._guidIdx;
-        delay_results_v.push_back((UINT32)calSingleQueryWrkld(currGUIDIdx, currQNodeIdx));
-        if (++qCntfrmLstClk >= Settings::QueryPerClock) {
-            Settings::CurrentClock ++;
-            qCntfrmLstClk =0;
-        }
-        if (++qCntfrmLstUpd * Settings::UpdateFrqGUID >=1) {
-            //get a GUID to simulate update
-            updateGUIDIdx = Util::Inst()->GenInt(updateGUIDs_v.size());
-            updateGUIDIdx = updateGUIDs_v[updateGUIDIdx];
-            //debug
-            Stat::QueryHopCnt[updateGUIDIdx]++;
-            //cout<<"issued an update for guid "<<updateGUIDIdx<<" "<<endl;
-            global_guid_list[updateGUIDIdx].simulateAnUpdate();
-            qCntfrmLstUpd=0;
-        }
-        if ((-- global_node_table[currQNodeIdx]._queryWrkld_v[randNum2]._queryCnt)==0) {
-            global_node_table[currQNodeIdx]._queryWrkld_v.erase(global_node_table[currQNodeIdx]._queryWrkld_v.begin()+randNum2);
-        }
-        if (global_node_table[currQNodeIdx]._queryWrkld_v.size()==0) {
-            queryIssuer_v.erase(queryIssuer_v.begin()+randNum);
-        }     
-    }
-    sort(Stat::Workload_per_node.begin(),Stat::Workload_per_node.end());
-    while (Stat::Workload_per_node.size() && (Stat::Workload_per_node[0]._cacheWrkld+Stat::Workload_per_node[0]._replicaWrkld)==0) {
-        Stat::Workload_per_node.erase(Stat::Workload_per_node.begin());
-    }
     string strgOutName = Settings::outFileName;
-    strgOutName = Settings::outFileName + "_QWrkld_scatter";
-    Util::Inst()->outWrkldDetail(strgOutName.c_str(),Stat::Workload_per_node);
-    strgOutName = Settings::outFileName + "_qLatency_cdf";
-    Util::Inst()->genCDF(strgOutName.c_str(),delay_results_v);    
+    
+    // single round
     if (Settings::CacheOn) {
-        strgOutName = Settings::outFileName + "_cacheHitPerguid_cdf";
-        Util::Inst()->genCDF(strgOutName.c_str(),Stat::CacheHit_per_guid);
-        strgOutName = Settings::outFileName + "_UptPerGUID_cdf";
-        Util::Inst()->genCDF(strgOutName.c_str(),Stat::QueryHopCnt);
-        strgOutName = Settings::outFileName + "_QHitHopCnt_cdf";
-        Util::Inst()->genCDF(strgOutName.c_str(),Stat::QueryHitHopCnt);
-        vector<FLOAT64> errRate_v;
-        for (UINT32 i = 0; i < global_guid_list.size(); i++) {
-            staleCnt += Stat::Error_cnt_per_guid[i];
-            if (global_guid_list[i].getPopularity()){
-                errRate_v.push_back((FLOAT32)Stat::Error_cnt_per_guid[i]/(FLOAT32)global_guid_list[i].getPopularity());
-            }
-        }
-        strgOutName = Settings::outFileName + "_ErrorRate";
+        strgOutName = Settings::outFileName + "_TotalErrPerRound";
         ofstream outfHdlr;
         outfHdlr.open(strgOutName.c_str(),ios::out | ios::in | ios:: trunc);
-        outfHdlr<<staleCnt<<"\t"<<delay_results_v.size()<<endl;
+        for (int i = 1; i <= Settings::QWrkldRounds; i++) {
+            Settings::totalErrorCnt=0;
+            oneRoundQueryWrkld(delay_results_v,Settings::UpdateFrqGUID);
+            outfHdlr<<Settings::totalErrorCnt<<"\t"<<(delay_results_v.size()-queryUntlLstRnd)<<"\t"<<Settings::UpdateFrqGUID<<endl;
+            queryUntlLstRnd = delay_results_v.size();
+            if (i%10 == 0) {
+                Settings::UpdateFrqGUID+=0.1;
+            }
+        }
         outfHdlr.close();
-        strgOutName = Settings::outFileName + "_ErrorStat";
+        /*strgOutName = Settings::outFileName + "_ErrorStat";
         outfHdlr.open(strgOutName.c_str(),ios::out | ios::in | ios:: trunc);
         for (UINT32 i = 0;  i < Stat::Error_stat.size(); i++) {
             outfHdlr<<Stat::Error_stat[i]._popularity<<"\t"<<Stat::Error_stat[i]._TTL<<"\t"<<Stat::Error_stat[i]._QHitsFrmLstErr<<endl;
         }
-        outfHdlr.close();
+        outfHdlr.close();*/
         strgOutName = Settings::outFileName + "_ErrorScatter";
         Util::Inst()->outErrorDetail(strgOutName.c_str());
-        strgOutName = Settings::outFileName + "_ErrorRate_cdf";
-        Util::Inst()->genCDF(strgOutName.c_str(),errRate_v);
-        strgOutName = Settings::outFileName + "_ErrorCnt_cdf";
-        Util::Inst()->genCDF(strgOutName.c_str(),Stat::Error_cnt_per_guid);
     }
+    else {
+        oneRoundQueryWrkld(delay_results_v,Settings::UpdateFrqGUID);
+    }
+    
+    sort(Stat::Workload_per_node.begin(),Stat::Workload_per_node.end());
+    while (Stat::Workload_per_node.size() && (Stat::Workload_per_node[0]._cacheWrkld+Stat::Workload_per_node[0]._replicaWrkld)==0) {
+        Stat::Workload_per_node.erase(Stat::Workload_per_node.begin());
+    }
+    strgOutName = Settings::outFileName + "_QWrkld_scatter";
+    Util::Inst()->outWrkldDetail(strgOutName.c_str(),Stat::Workload_per_node);
+    strgOutName = Settings::outFileName + "_qLatency_cdf";
+    Util::Inst()->genCDF(strgOutName.c_str(),delay_results_v);    
 }
 /*
  generate query workload: independent of update
@@ -1284,8 +1291,8 @@ void Underlay::PrepareWorkloadCal(){
     set<UINT32> glbCalHostSet;
     for (UINT64 guidIdx = 0; guidIdx < global_guid_list.size(); guidIdx++) {
         Stat::Error_cnt_per_guid.push_back(0);
-        Stat::CacheHit_per_guid.push_back(0);
-        Stat::QueryHopCnt.push_back(0);//debug used for recording updates per guid
+        //Stat::CacheHit_per_guid.push_back(0);
+        //Stat::QueryHopCnt.push_back(0);//debug used for recording updates per guid
         glbCalHostSet.clear();
         global_guid_list[guidIdx]._replica_hosts.clear();
         if(Settings::GNRS_K){

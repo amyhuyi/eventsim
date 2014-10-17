@@ -47,6 +47,7 @@ private:
     UINT32 issueQueries (UINT32 guidIdx, FLOAT32 exponent);
     void initializeMobility(UINT32 guidIdx);//assign address queue for a GUID among gw cities or all deployed cities
     FLOAT64 calSingleQueryWrkld (UINT64 currGUIDIdx, UINT32 currNodeIdx); //return this query latency
+    void oneRoundQueryWrkld(vector<UINT32>& delay_results_v, FLOAT32 updateFreq);
     FLOAT32 genLocalityExponent();
     void genOutFileName();
     void getShortestPath(UINT32 srcAS, UINT32 destAS, vector<UINT32> &pathContainer);

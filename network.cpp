@@ -287,8 +287,9 @@ void Underlay::InitializeWorkload(){
         totalActiveGUIDs += city_list[workload_cities[i]]._nodeIdx_v.size()*Settings::ActiveGUIDperPoP;
     }
     assert(workload_cities_guidquota.size() == workload_cities.size());
-    
-    Util::Inst()->ResetPareto(1.04);
+    //debug
+    cout<<"Initialized pareto"<<Settings::ParetoParameter<<endl;
+    Util::Inst()->ResetPareto(Settings::ParetoParameter);
     for(UINT64 i=0; i<totalActiveGUIDs; i++){
         if (workload_cities_guidquota[currCityIdx]==0) {
             currCityIdx ++;
@@ -353,6 +354,12 @@ void Underlay::genOutFileName(){
     ss <<Settings::Local_K;
     strgOutName += ss.str();
     ss.str("");
+    if (Settings::ParetoParameter != 1.04) {
+        strgOutName += "_Pareto";
+        ss <<Settings::ParetoParameter;
+        strgOutName += ss.str();
+        ss.str("");
+    }
     strgOutName += "_QOrigBal";
     ss <<Settings::QueryOriginBalance;
     strgOutName += ss.str();

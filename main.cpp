@@ -60,6 +60,7 @@ UINT32 Settings::TTL = 1000;
 bool Settings::AdaptGo = false;
 UINT32 Settings::QWrkldRounds =1;
 UINT64 Settings::totalErrorCnt =0;
+FLOAT32 Settings::ParetoParameter=1.04; //equals zipf parameter =2.04
 /*!
  *  @brief Computes floor(log2(n))
  *  Works by finding position of MSB set.
@@ -315,6 +316,12 @@ void ParseArg(const char * argv)
 	ss <<arg.substr(13);
 	ss >>Settings::QWrkldRounds;
     }
+    else if (arg.find("paretoparameter=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(16);
+	ss >>Settings::ParetoParameter;
+    }
 }
 
 int main(int argc, const char* argv[])
@@ -358,11 +365,12 @@ int main(int argc, const char* argv[])
     cout<<"Settings::CacheLookupLat="<<Settings::CacheLookupLat<<endl;
     cout<<"Settings::GoThroughProb="<<Settings::GoThroughProb<<endl;
     cout<<"Settings::UpdateFrqGUID="<<Settings::UpdateFrqGUID<<endl;
+    cout<<"Settings::QWrkldRounds="<<Settings::QWrkldRounds<<endl;
     cout<<"Settings::QueryOriginBalance="<<Settings::QueryOriginBalance<<endl;
     cout<<"Settings::CurrentClock="<<Settings::CurrentClock<<endl;
     cout<<"Settings::QueryPerClock="<<Settings::QueryPerClock<<endl;
     cout<<"Settings::TTL="<<Settings::TTL<<endl;
-    
+    cout<<"Settings::ParetoParameter="<<Settings::ParetoParameter<<endl;
     if (Settings::Geo_Lat_On) {
         cout<<"Settings::Geo_Lat_On = true"<<endl;
     } else {

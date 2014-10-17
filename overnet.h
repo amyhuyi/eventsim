@@ -99,6 +99,7 @@ public:
         static bool AdaptGo;
         static UINT32 QWrkldRounds; //no. of simulation rounds for calculating query workload
         static UINT64 totalErrorCnt;
+        static FLOAT32 ParetoParameter;
 };
 
 typedef struct _Query_Latency{

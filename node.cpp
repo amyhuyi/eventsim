@@ -327,39 +327,33 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
         //debug
         assert(Settings::TTL==0 || (Settings::CurrentClock-_cache[i]._createtime)<= Settings::TTL);
         if (_cache[i]._guidIdx == guidIdx) { //cache hit
-            _cache[i]._fromLastError++;
+            _cache[i]._totalHits++;
             _cache[i]._hitCount++;
             if (_cache[i]._goThroughProb*_cache[i]._hitCount >=1) {
                 hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath,true);
-                _cache[i]._timestamp = myTimestamp;
+                if (_cache[i]._timestamp != myTimestamp) {
+                    _cache[i]._updatesPerPeriod++;
+                    _cache[i]._timestamp = myTimestamp;
+                }
                 _cache[i]._hitCount=0;
             }else{
-                if (_cache[i]._timestamp < correctTimeStamp) {
-                    if (Settings::AdaptGo && _cache[i]._fromLastError>1) {
-                        _cache[i]._goThroughProb = 1.00/(FLOAT32)_cache[i]._fromLastError;
-                        _cache[i]._goThroughProb += 0.01;
-                    }
+                if (_cache[i]._timestamp < correctTimeStamp) { //obsolete cache
+                    _cache[i]._updatesPerPeriod++;
                     if (!staleFlag) {
                         Stat::Error_cnt_per_guid[guidIdx]++;
                         Settings::totalErrorCnt++;
                         Underlay::Inst()->global_guid_list[guidIdx]._distinctErrCacheNodes.insert(_nodeIdx);
                         Error_Entry currErrentry;
                         currErrentry._popularity = Underlay::Inst()->global_guid_list[guidIdx].getPopularity();
-                        //currErrentry._TTL = Settings::CurrentClock - _cache[i]._createtime;
-                        //currErrentry._TTL = _cache[i]._goThroughProb;
-                        //currErrentry._QHitsFrmLstErr = _cache[i]._fromLastError;
-                        //Stat::Error_stat.push_back(currErrentry);
+                        currErrentry._TTL = Settings::CurrentClock - _cache[i]._createtime;
+                        currErrentry._goThrough = _cache[i]._goThroughProb;
+                        Stat::Error_stat.push_back(currErrentry);
                     }
                     hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath, true);
                     _cache[i]._timestamp = myTimestamp;
-                    _cache[i]._prevFrmLstErr = _cache[i]._fromLastError;
-                    _cache[i]._fromLastError =0;
                 } else{
                     myTimestamp = _cache[i]._timestamp;
                     hitNodeIdx = _nodeIdx;
-                    if (!staleFlag) {
-                        //Stat::CacheHit_per_guid[guidIdx]++;
-                    }
                 }              
             }
             assert(_cache[i]._guidIdx == guidIdx && _cache[i]._timestamp == correctTimeStamp);
@@ -376,13 +370,23 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
     
     if (!staleFlag) {
         Cache_Entry currCacheEntry (guidIdx, myTimestamp, Settings::CurrentClock, 0);
-        if (!Settings::AdaptGo) {
-            currCacheEntry._goThroughProb = Settings::GoThroughProb;
-        }
+        currCacheEntry._goThroughProb = Settings::GoThroughProb;
         if (_cache.size() >= Settings::CachePerc*Underlay::Inst()->global_guid_list.size()) {
             _cache.erase(_cache.begin()); //creation time can be handled here  
         } 
         _cache.push_back(currCacheEntry);
     }
     return hitNodeIdx;
+}
+
+/*adapt goThrough probability and pervious perceived update rate*/
+void Node::adaptGoThrough(){
+    for (UINT32 i = 0; i < _cache.size(); i++){
+        if (_cache[i]._totalHits) {
+            _cache[i]._goThroughProb = (FLOAT32)_cache[i]._updatesPerPeriod/(FLOAT32)_cache[i]._totalHits+0.1;
+            _cache[i]._prevUpdateRate = (FLOAT32)_cache[i]._updatesPerPeriod/(FLOAT32)_cache[i]._totalHits;
+        }
+        _cache[i]._totalHits=0;
+        _cache[i]._updatesPerPeriod=0;
+    }
 }

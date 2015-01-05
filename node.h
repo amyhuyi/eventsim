@@ -51,6 +51,7 @@ public:
     bool updateGUID(UINT32 guid, FLOAT64 time);
     void calCorrectHost(set<UINT32> localHostset, set<UINT32> globalHostset, char opt);
     UINT32 cacheLookup(UINT32 guidIdx, UINT32 & myTimestamp, vector<UINT32>& remainNodePath, bool staleFlag); //return the hit nodeIdx
+    void adaptGoThrough(); // adapt goThrough probability for each cache per period
 };
 bool NodeSortPredicate( const Node d1, const Node d2);
 

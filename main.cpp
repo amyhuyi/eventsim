@@ -21,7 +21,7 @@ vector<Error_Entry> Stat::Error_stat;
 vector<UINT32> Stat::Migration_per_node;
 UINT32 Stat::Premature_joins=0;
 UINT32 Stat::Premature_leaves=0;
-UINT32 Settings::CacheLookupLat =2; //cache lookup latency at one hop in ms
+UINT32 Settings::CacheLookupLat =0; //cache lookup latency at one hop in ms
 FLOAT64 Settings::EndTime = 50;
 FLOAT64 Settings::TestThreshold = 0.1;
 UINT32 Settings::ActiveGUIDperPoP = 10;	// 
@@ -58,6 +58,7 @@ UINT32 Settings::CurrentClock =0;
 UINT32 Settings::QueryPerClock =10;
 UINT32 Settings::TTL = 1000;
 bool Settings::AdaptGo = false;
+bool Settings::FixPath = false;
 UINT32 Settings::QWrkldRounds =1;
 UINT64 Settings::totalErrorCnt =0;
 FLOAT32 Settings::ParetoParameter=1.04; //equals zipf parameter =2.04
@@ -322,6 +323,12 @@ void ParseArg(const char * argv)
 	ss <<arg.substr(16);
 	ss >>Settings::ParetoParameter;
     }
+    else if (arg.find("fixpath=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(8);
+	ss >>Settings::FixPath;
+    }
 }
 
 int main(int argc, const char* argv[])
@@ -396,6 +403,11 @@ int main(int argc, const char* argv[])
     } else {
         cout<<"Settings::AdaptGo = false"<<endl;
     }
+    if (Settings::FixPath) {
+        cout<<"Settings::FixPath = true"<<endl;
+    } else {
+        cout<<"Settings::FixPath = false"<<endl;
+    }
     Underlay::Inst()->InitializeStat(); //finish node initialization, prepare node stat
     Underlay::Inst()->InitializeWorkload(); //finish guid init   
     Underlay::Inst()->PrepareWorkloadCal(); //prepare all guid stat
@@ -403,7 +415,11 @@ int main(int argc, const char* argv[])
     
     UINT32 totalNodes = Underlay::Inst()->global_node_table.size();
     //Underlay::Inst()->calStorageWorkload();
-    Underlay::Inst()->calQueryWorkload();
+    if (Settings::ChurnHours == 0 && Settings::QueryHours==0 && Settings::UpdateHours==0) {
+        Underlay::Inst()->calQueryWorkload();
+    }
+
+    
     if(Settings::ChurnHours)
         Underlay::Inst()->generateLeaveChurn(Settings::ChurnHours, Settings::ChurnPerNode*totalNodes, 
                 Settings::OnOffSession, Settings::OnOffRounds);
@@ -411,7 +427,7 @@ int main(int argc, const char* argv[])
     
     while ( EventScheduler::Inst()->GetCurrentTime() <= Settings::EndTime){
 	Event * pevent = EventScheduler::Inst()->CurrentEvent();
-	//cout <<"queued jobs: " <<EventScheduler::Inst()->GetSize() <<" info: ";
+	cout <<"queued jobs: " <<EventScheduler::Inst()->GetSize() <<endl;
 	//pevent->PrintInfo();
 	if (pevent->Callback()){
             delete pevent;

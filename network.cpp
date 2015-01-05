@@ -376,12 +376,11 @@ void Underlay::genOutFileName(){
         ss.str("");
         if (Settings::AdaptGo) {
             strgOutName += "_aptGo";
-        } else {
-            strgOutName += "_GoThru";
-            ss <<Settings::GoThroughProb;
-            strgOutName += ss.str();
-            ss.str("");
-        }
+        } 
+        strgOutName += "_GoThru";
+        ss <<Settings::GoThroughProb;
+        strgOutName += ss.str();
+        ss.str("");
         strgOutName +="_CachePerc";
         ss <<Settings::CachePerc;
         strgOutName += ss.str();
@@ -411,6 +410,32 @@ void Underlay::genOutFileName(){
     } /*else {
         strgOutName += "_ShrtSlct";
     }*/
+    if (Settings::ChurnHours){
+        strgOutName +="_ChnRt";
+        ss <<Settings::ChurnPerNode;
+        strgOutName += ss.str();
+        ss.str("");
+        strgOutName +="_ChnSes";
+        ss <<Settings::OnOffSession;
+        strgOutName += ss.str();
+        ss.str("");
+        strgOutName +="_ChnRnd";
+        ss <<Settings::OnOffRounds;
+        strgOutName += ss.str();
+        ss.str("");
+    }
+    if (Settings::QueryHours){
+        strgOutName +="_QHrs";
+        ss <<Settings::QueryHours;
+        strgOutName += ss.str();
+        ss.str("");
+    }
+    if (Settings::UpdateHours){
+        strgOutName +="_UHrs";
+        ss <<Settings::UpdateHours;
+        strgOutName += ss.str();
+        ss.str("");
+    }
     Settings::outFileName = strgOutName;
 }
 
@@ -758,7 +783,7 @@ void Underlay::getQueryNodes(UINT32 guidIdx, vector<UINT32>& _queryNodes, vector
         }
     }   
     //debug
-    cout<<"exponent"<<exponent<<" popularity "<<global_guid_list[guidIdx].getPopularity()<<" query nodes: "<<_queryNodes.size();
+    /*cout<<"exponent"<<exponent<<" popularity "<<global_guid_list[guidIdx].getPopularity()<<" query nodes: "<<_queryNodes.size();
         for (int i = 0; i < _queryQuota.size(); i++) {
             cout<<","<<_queryQuota[i];
         }
@@ -771,7 +796,7 @@ void Underlay::getQueryNodes(UINT32 guidIdx, vector<UINT32>& _queryNodes, vector
         cout<<city_list[global_node_table[_queryNodes[i]].getCityIdx()].getCity()<<","
             <<city_list[global_node_table[_queryNodes[i]].getCityIdx()].getCountry()<<" a query city with quota"
             <<_queryQuota[i]<<endl;
-    }
+    }*/
 }
 
 UINT32 Underlay::issueQueries (UINT32 currGUIDIdx, FLOAT32 exponent){
@@ -795,6 +820,8 @@ UINT32 Underlay::issueQueries (UINT32 currGUIDIdx, FLOAT32 exponent){
     UINT32 idxRetryCnt = Underlay::Inst()->getIdxRetryCnt(EventScheduler::Inst()->GetCurrentTime(), false);
     Stat::DHT_RetryCnt[idxDHTCnt]._issuedQuery += generatedCnt;
     Stat::Retry_Cnt[idxRetryCnt]._issuedQuery += generatedCnt;
+    //debug
+    cout<<"issued queries "<<generatedCnt<<endl;
     return generatedCnt;
 }
 
@@ -881,11 +908,15 @@ FLOAT64 Underlay::calSingleQueryWrkld(UINT64 currGUIDIdx, UINT32 currNodeIdx){
     else{ //cache along route
         getShortestPath(global_node_table[currNodeIdx].getASIdx(), global_node_table[dstReplicahost].getASIdx(),queryPathAS);
         queryPathNode.clear();
-        for (int i = 0; i < queryPathAS.size(); i++) {           
-            randNum = Util::Inst()->GenInt(as_v[queryPathAS[i]]._myNodes.size());
-            set <UINT32>::iterator it = as_v[queryPathAS[i]]._myNodes.begin();
-            std::advance(it, randNum);
-            queryPathNode.push_back((*it));
+        for (int i = 0; i < queryPathAS.size(); i++) {
+            if (Settings::FixPath) {
+                queryPathNode.push_back((*as_v[queryPathAS[i]]._myNodes.begin()));
+            } else {
+                randNum = Util::Inst()->GenInt(as_v[queryPathAS[i]]._myNodes.size());
+                set <UINT32>::iterator it = as_v[queryPathAS[i]]._myNodes.begin();
+                std::advance(it, randNum);
+                queryPathNode.push_back((*it));
+            }
         }
     }
     queryPathNode.push_back(dstReplicahost);
@@ -894,7 +925,7 @@ FLOAT64 Underlay::calSingleQueryWrkld(UINT64 currGUIDIdx, UINT32 currNodeIdx){
     debugQueryPathNode.insert(debugQueryPathNode.begin(), currNodeIdx);
     hitNode= global_node_table[currNodeIdx].cacheLookup(currGUIDIdx, currTS, queryPathNode,false);
     global_guid_list[currGUIDIdx].increaseQeueryCnt();
-    cacheLat = calCacheLatOverhead(debugQueryPathNode,hitNode);
+    //cacheLat = calCacheLatOverhead(debugQueryPathNode,hitNode);
     minDistance = getLatency(currNodeIdx,hitNode);
     //return (minDistance*2 + cacheLat);
     return minDistance*2;
@@ -904,6 +935,9 @@ void Underlay::oneRoundQueryWrkld(vector<UINT32>& delay_results_v, FLOAT32 updat
     vector<UINT32> queryIssuer_v;
     UINT32 randNum, randNum2, currGUIDIdx, currQNodeIdx, updateGUIDIdx;
     UINT32 qCntfrmLstUpd=0, qCntfrmLstClk=0;
+    /*UINT64 update_period_clk= total_query_per_round/Settings::QueryPerClock;
+    update_period_clk = update_period_clk/2;
+    cout<<"update_period_clk="<< update_period_clk<<endl;*/
     for (UINT32 i = 0;  i < global_guid_list.size(); i++) {
         Stat::Error_cnt_per_guid[i]=0;
     }
@@ -923,6 +957,12 @@ void Underlay::oneRoundQueryWrkld(vector<UINT32>& delay_results_v, FLOAT32 updat
         if (++qCntfrmLstClk >= Settings::QueryPerClock) {
             Settings::CurrentClock ++;
             qCntfrmLstClk =0;
+            /*if (Settings::CurrentClock % update_period_clk == 0) {
+                cout<<"adaptive update!!!"<<endl;
+                for (int j = 0; j < global_node_table.size(); j++) {
+                    global_node_table[j].adaptGoThrough();
+                }
+            }*/
         }
         if (++qCntfrmLstUpd * updateFreq >=1) {
             //get a GUID to simulate update
@@ -958,6 +998,13 @@ void Underlay::calQueryWorkload(){
             getQueryNodesByPoP(currGUIDIdx,queryNodes,queryQuota,-11.0);
         }
     }
+    /*total_query_per_round=0;
+    for (UINT32 i = 0; i < global_node_table.size(); i++) {
+        for (int j = 0; j < global_node_table[i]._queryWrkld_v.size(); j++) {
+            total_query_per_round += global_node_table[i]._queryWrkld_v[j]._queryCnt;
+        }
+    }
+    cout<<"total_query_per_round="<<total_query_per_round<<endl;*/
     string strgOutName = Settings::outFileName;
     
     // single round
@@ -970,15 +1017,24 @@ void Underlay::calQueryWorkload(){
             oneRoundQueryWrkld(delay_results_v,Settings::UpdateFrqGUID);
             outfHdlr<<Settings::totalErrorCnt<<"\t"<<(delay_results_v.size()-queryUntlLstRnd)<<"\t"<<Settings::UpdateFrqGUID<<endl;
             queryUntlLstRnd = delay_results_v.size();
+            while (Stat::Error_stat.size()) {
+                outfHdlr<<Stat::Error_stat[0]._popularity<<"\t"<<Stat::Error_stat[0]._TTL<<"\t"<<Stat::Error_stat[0]._goThrough<<endl;
+                Stat::Error_stat.erase(Stat::Error_stat.begin());
+            };
             if (i%10 == 0) {
                 Settings::UpdateFrqGUID+=0.1;
+            }
+            if (Settings::AdaptGo) {
+                for (int j = 0; j < global_node_table.size(); j++) {
+                    global_node_table[j].adaptGoThrough();
+                }
             }
         }
         outfHdlr.close();
         /*strgOutName = Settings::outFileName + "_ErrorStat";
         outfHdlr.open(strgOutName.c_str(),ios::out | ios::in | ios:: trunc);
         for (UINT32 i = 0;  i < Stat::Error_stat.size(); i++) {
-            outfHdlr<<Stat::Error_stat[i]._popularity<<"\t"<<Stat::Error_stat[i]._TTL<<"\t"<<Stat::Error_stat[i]._QHitsFrmLstErr<<endl;
+            outfHdlr<<Stat::Error_stat[i]._popularity<<"\t"<<Stat::Error_stat[i]._TTL<<"\t"<<Stat::Error_stat[i]._goThrough<<endl;
         }
         outfHdlr.close();*/
         strgOutName = Settings::outFileName + "_ErrorScatter";
@@ -1090,6 +1146,8 @@ UINT32 Underlay::generateLeaveChurn(UINT32 churnLength, FLOAT64 mean_arrival, FL
         currArrivalTime++;
         generatedCnt =+ currRound;
     }
+    //debug
+    cout<<"generate leave cnt"<<generatedCnt<<endl;
     return generatedCnt;
 }
 /*
@@ -1292,7 +1350,6 @@ void Underlay::determineHost(UINT32 guidIdx, set<UINT32>& glbCalHostSet, set<UIN
 }
 //calculate global replica host
 //calculate storage workload per node
-//To do: initialize other cache related parameters of guid
 void Underlay::PrepareWorkloadCal(){
     assert(Stat::Storage_per_node.size() == global_node_table.size());
     set<UINT32> glbCalHostSet;

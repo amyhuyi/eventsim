@@ -31,6 +31,7 @@ class Underlay
 {
 private:
     static Underlay* _underlay_ptr;
+    UINT64 total_query_per_round;
     UINT32 _num_of_as;
     UINT32 _num_of_node;
     UINT32 *as_dist_matx;           //shortest distance matrix

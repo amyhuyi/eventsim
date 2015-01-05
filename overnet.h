@@ -89,7 +89,7 @@ public:
         static UINT32 CacheOn; //0: no cache; 1: cache lookup only at src; 2: cache lookup along the route
         static FLOAT32 CachePerc; // percentage of top popular GUID each pop locally cached
         static FLOAT32 GoThroughProb; //default go through probability for a cache entry
-        static bool balanceBase; // calculate baseline of workload balance
+        static bool balanceBase; // calculate baseline of workload balance (random select one replica host as dst)
         static UINT32 QueryOriginBalance; //0-queries orginiate from a PoP, 1-from a city, 2-from a country, 3-from global
         static UINT32 CacheLookupLat; //cache lookup latency per hop in ms
         static FLOAT32 UpdateFrqGUID; //update frequency in terms of query frequency for all GUIDs
@@ -100,6 +100,7 @@ public:
         static UINT32 QWrkldRounds; //no. of simulation rounds for calculating query workload
         static UINT64 totalErrorCnt;
         static FLOAT32 ParetoParameter;
+        static bool FixPath; // query path fixed (choose every first PoP of an intermediate AS along the path)
 };
 
 typedef struct _Query_Latency{
@@ -135,11 +136,12 @@ typedef struct _Cache_Entry{
     UINT32 _createtime; //creation time of this cache entry
     FLOAT32 _goThroughProb;
     UINT32 _hitCount; //to determine go through or not
-    UINT32 _fromLastError; //hit count from last stale retrieval, indicating current update freq
-    UINT32 _prevFrmLstErr; // old version of _fromLastError, to indicate update freq change 
+    UINT32 _totalHits; // record total hits in a period, perceived update rate = updatesPerPeriod/totalHits from a period
+    UINT32 _updatesPerPeriod; //no. of updates per period
+    FLOAT32 _prevUpdateRate; // old version of perceived update rate, to indicate update freq change 
     _Cache_Entry (UINT32 guidIdx, UINT32 timestmp=0, UINT32 creation=0, FLOAT32 gothrough=0):_guidIdx(guidIdx),
            _timestamp(timestmp),_createtime(creation),_goThroughProb(gothrough)
-           { _hitCount=0; _prevFrmLstErr=0;_fromLastError=0;}
+           { _hitCount=0; _totalHits=0; _prevUpdateRate=0;_updatesPerPeriod=0;}
 } Cache_Entry;
 
 typedef struct _Retry_Count{
@@ -161,7 +163,7 @@ typedef struct _Retry_Count{
 typedef struct _Error_Entry{
     UINT64 _popularity;
     FLOAT32 _TTL;
-    UINT32 _QHitsFrmLstErr;
+    FLOAT32 _goThrough;
     bool operator < (const struct _Error_Entry& errEntry) const
     {
         return (_popularity < errEntry._popularity);

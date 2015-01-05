@@ -37,14 +37,18 @@ DummyEvent::DummyEvent() : Event()
 
 bool DummyEvent::Callback()	// if return is true, this event can be deleted
 {
-	
         UINT32 totalNodes = Underlay::Inst()->global_node_table.size();
-        if(_time_done <= Settings::UpdateHours)
+        //debug
+        cout<<"current Dummy time done before"<< _time_done<<endl;
+        if(_time_done <= Settings::UpdateHours){
             Underlay::Inst()->generateUpdateWorkload(Settings::UpdatePerNode*totalNodes);
-        else if(_time_done <= Settings::QueryHours)
+        }
+        else if(_time_done <= Settings::QueryHours){
             Underlay::Inst()->generateQueryWorkload(Settings::QueryPerNode*totalNodes);
+        }
         _time_done += 1;
 	EventScheduler::Inst()->AddEvent(this);
+        cout<<"current Dummy time done after"<< _time_done<<endl;
 	return false;
 }
 

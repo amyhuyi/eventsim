@@ -419,11 +419,11 @@ int main(int argc, const char* argv[])
         Underlay::Inst()->calQueryWorkload();
     }
 
-    
+    cout <<"EventScheduler::Inst()->GetCurrentTime() =" <<EventScheduler::Inst()->GetCurrentTime()<<",Size before churn"<<EventScheduler::Inst()->GetSize()<<endl;
     if(Settings::ChurnHours)
         Underlay::Inst()->generateLeaveChurn(Settings::ChurnHours, Settings::ChurnPerNode*totalNodes, 
                 Settings::OnOffSession, Settings::OnOffRounds);
-    cout <<"EventScheduler::Inst()->GetCurrentTime() =" <<EventScheduler::Inst()->GetCurrentTime()<<endl;
+    cout <<"EventScheduler::Inst()->GetCurrentTime() =" <<EventScheduler::Inst()->GetCurrentTime()<<",Size after churn"<<EventScheduler::Inst()->GetSize()<<endl;
     
     while ( EventScheduler::Inst()->GetCurrentTime() <= Settings::EndTime){
 	Event * pevent = EventScheduler::Inst()->CurrentEvent();

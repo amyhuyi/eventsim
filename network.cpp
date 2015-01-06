@@ -1017,10 +1017,10 @@ void Underlay::calQueryWorkload(){
             oneRoundQueryWrkld(delay_results_v,Settings::UpdateFrqGUID);
             outfHdlr<<Settings::totalErrorCnt<<"\t"<<(delay_results_v.size()-queryUntlLstRnd)<<"\t"<<Settings::UpdateFrqGUID<<endl;
             queryUntlLstRnd = delay_results_v.size();
-            while (Stat::Error_stat.size()) {
+            /*while (Stat::Error_stat.size()) {
                 outfHdlr<<Stat::Error_stat[0]._popularity<<"\t"<<Stat::Error_stat[0]._TTL<<"\t"<<Stat::Error_stat[0]._goThrough<<endl;
                 Stat::Error_stat.erase(Stat::Error_stat.begin());
-            };
+            };*/
             if (i%10 == 0) {
                 Settings::UpdateFrqGUID+=0.1;
             }

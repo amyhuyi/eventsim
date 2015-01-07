@@ -104,8 +104,8 @@ public:
 };
 
 typedef struct _Query_Latency{
-    FLOAT64 _time;
-    vector<FLOAT64> _delay_v;
+    UINT32 _time;
+    vector<UINT32> _delay_v;
     bool operator < (const struct _Query_Latency& query) const
     {
         return (_time < query._time);
@@ -145,15 +145,15 @@ typedef struct _Cache_Entry{
 } Cache_Entry;
 
 typedef struct _Retry_Count{
-    vector<FLOAT64> _Qdelay;
-    vector<FLOAT64> _Udelay;
+    vector<UINT32> _Qdelay;
+    vector<UINT32> _Udelay;
     UINT32 _retryQuery;
     UINT32 _retryUpdate;
     UINT32  _retryQMsg;
     UINT32 _retryUMsg;
     UINT32 _issuedQuery;
     UINT32 _issuedUpdate;
-    FLOAT64 _time;
+    UINT32 _time;
     bool operator < (const struct _Retry_Count& retryCnt) const
     {
         return (_time < retryCnt._time);

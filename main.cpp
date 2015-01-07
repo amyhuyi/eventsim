@@ -427,20 +427,15 @@ int main(int argc, const char* argv[])
     
     while ( EventScheduler::Inst()->GetCurrentTime() <= Settings::EndTime){
 	Event * pevent = EventScheduler::Inst()->CurrentEvent();
-	cout <<"queued jobs: " <<EventScheduler::Inst()->GetSize() <<endl;
+	//cout <<"queued jobs: " <<EventScheduler::Inst()->GetSize() <<endl;
 	//pevent->PrintInfo();
 	if (pevent->Callback()){
             delete pevent;
 	}
 	EventScheduler::Inst()->NextEvent();
     }
-    cout<<"Stat::Retry_Cnt.size()"<<Stat::Retry_Cnt.size()<<endl;
-    for (int i = 0; i < Stat::Retry_Cnt.size();i++) {
-       cout<<Stat::Retry_Cnt[i]._time<<" "<<Stat::Retry_Cnt[i]._retryUpdate<<" "<<Stat::Retry_Cnt[i]._retryQuery<<endl;
-    }
-    
-    for (int i = 0; i < Stat::DHT_RetryCnt.size(); i++) {
-       cout<<Stat::DHT_RetryCnt[i]._time<<" "<<Stat::DHT_RetryCnt[i]._retryUpdate<<" "<<Stat::DHT_RetryCnt[i]._retryQuery<<endl;
+    if (Stat::Query_latency_time.size() || Stat::Insertion_latency_time.size()) {
+        Underlay::Inst()->calEventLatnRetry();
     }
     //Stat::Inst()->PrintRetryStat();
     //Stat::Inst()->PrintLatencyStat();

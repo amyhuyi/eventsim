@@ -128,13 +128,13 @@ bool PreJoinMessage::Callback(){
         EventScheduler::Inst()->AddEvent(aJoinMsg);
         Underlay::Inst()->global_node_table[_nodeIdx].setInService(EventScheduler::Inst()->GetCurrentTime());
         Underlay::Inst()->as_v[Underlay::Inst()->global_node_table[_nodeIdx].getASIdx()].beNotifedAjoin(_nodeIdx);
-        UINT32 migrationOverhead = Underlay::Inst()->migrationOverhead4Join(_nodeIdx);
-        Stat::Migration_per_node[_nodeIdx] += migrationOverhead;
+        //UINT32 migrationOverhead = Underlay::Inst()->migrationOverhead4Join(_nodeIdx);
+        //Stat::Migration_per_node[_nodeIdx] += migrationOverhead;
         for(it = myNeighborsIdx_v.begin(); it != myNeighborsIdx_v.end(); ++it){
             currNodeIdx = (*it);
             currASIdx = Underlay::Inst()->global_node_table[currNodeIdx].getASIdx();
-            Stat::Ping_per_node[currNodeIdx]+=pingCnt;
-            Stat::Migration_per_node[currNodeIdx] += migrationOverhead/Settings::GNRS_K; //ToDo:check
+            //Stat::Ping_per_node[currNodeIdx]+=pingCnt;
+            //Stat::Migration_per_node[currNodeIdx] += migrationOverhead/Settings::GNRS_K; //ToDo:check
             Underlay::Inst()->as_v[currASIdx].beNotifedAjoin(_nodeIdx);
         }
     }
@@ -142,7 +142,7 @@ bool PreJoinMessage::Callback(){
         pingCnt = _service_time/PING_PERIOD;
         for(it = myNeighborsIdx_v.begin(); it != myNeighborsIdx_v.end(); ++it){
             currNodeIdx = (*it);
-            Stat::Ping_per_node[currNodeIdx]+=pingCnt;
+            //Stat::Ping_per_node[currNodeIdx]+=pingCnt;
             Stat::Premature_joins++;
         }
         if(_churnNo>0){
@@ -192,11 +192,11 @@ bool PreLeaveMessage::Callback(){
         EventScheduler::Inst()->AddEvent(aleaveMsg);
         Underlay::Inst()->global_node_table[_nodeIdx].setOffService(EventScheduler::Inst()->GetCurrentTime());
         Underlay::Inst()->as_v[Underlay::Inst()->global_node_table[_nodeIdx].getASIdx()].beNotifedAleave(_nodeIdx);
-        UINT32 migrationOverhead = Underlay::Inst()->migrationOverhead4Leave(_nodeIdx);
+        //UINT32 migrationOverhead = Underlay::Inst()->migrationOverhead4Leave(_nodeIdx);
         for(it = myNeighborsIdx_v.begin(); it != myNeighborsIdx_v.end(); ++it){
             currNodeIdx = (*it);
             currASIdx = Underlay::Inst()->global_node_table[currNodeIdx].getASIdx();
-            Stat::Migration_per_node[currNodeIdx] += migrationOverhead/Settings::GNRS_K; //ToDo:check
+            //Stat::Migration_per_node[currNodeIdx] += migrationOverhead/Settings::GNRS_K; //ToDo:check
             Underlay::Inst()->as_v[currASIdx].beNotifedAleave(_nodeIdx);
         }
     }

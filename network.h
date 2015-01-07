@@ -90,6 +90,7 @@ public:
     UINT32 getIdxQueryLatency(FLOAT64 currTime, bool isInsertion);
     void calStorageWorkload();//calculate storage workload distribution among hashIDs
     void calQueryWorkload(); //calculate query workload distribution among hashIDs
+    void calEventLatnRetry(); //calculate insertion and query latency when event queue is used and the retry count
 };
 
 #endif

@@ -821,7 +821,7 @@ UINT32 Underlay::issueQueries (UINT32 currGUIDIdx, FLOAT32 exponent){
     Stat::DHT_RetryCnt[idxDHTCnt]._issuedQuery += generatedCnt;
     Stat::Retry_Cnt[idxRetryCnt]._issuedQuery += generatedCnt;
     //debug
-    cout<<"issued queries "<<generatedCnt<<endl;
+    //cout<<"issued queries "<<generatedCnt<<endl;
     return generatedCnt;
 }
 
@@ -1053,6 +1053,44 @@ void Underlay::calQueryWorkload(){
     strgOutName = Settings::outFileName + "_qLatency_cdf";
     Util::Inst()->genCDF(strgOutName.c_str(),delay_results_v);    
 }
+
+void Underlay::calEventLatnRetry(){
+    string strgOutName = Settings::outFileName;
+    stringstream ss (stringstream::in | stringstream::out);
+    for (int i = 0; i < Stat::Query_latency_time.size(); i++) {
+        strgOutName = Settings::outFileName;
+        strgOutName += "_qLatCDF_CLOCK";
+        ss<<Stat::Query_latency_time[i]._time;
+        strgOutName += ss.str();
+        ss.str("");
+        Util::Inst()->genCDF(strgOutName.c_str(),Stat::Query_latency_time[i]._delay_v);
+    }
+    for (int i = 0; i < Stat::Insertion_latency_time.size(); i++) {
+        strgOutName = Settings::outFileName;
+        strgOutName += "_iLatCDF_CLOCK";
+        ss<<Stat::Insertion_latency_time[i]._time;
+        strgOutName += ss.str();
+        ss.str("");
+        Util::Inst()->genCDF(strgOutName.c_str(),Stat::Insertion_latency_time[i]._delay_v);
+    }
+    if (Settings::ChurnHours) {
+        strgOutName = Settings::outFileName + "_Retries";
+        ofstream outfHdlr;
+        outfHdlr.open(strgOutName.c_str(),ios::out | ios::in | ios:: trunc);
+        for (int i = 0; i < Stat::Retry_Cnt.size(); i++) {
+            outfHdlr<<Stat::Retry_Cnt[i]._time<<"\t"<<(FLOAT32)Stat::Retry_Cnt[i]._retryQuery/(FLOAT32)Stat::Retry_Cnt[i]._issuedQuery
+                    <<"\t"<<(FLOAT32)Stat::Retry_Cnt[i]._retryUpdate/(FLOAT32)Stat::Retry_Cnt[i]._issuedUpdate<<endl;
+
+        }
+        for (int i = 0; i < Stat::DHT_RetryCnt.size(); i++) {
+            outfHdlr<<Stat::DHT_RetryCnt[i]._time<<"\t"<<(FLOAT32)Stat::DHT_RetryCnt[i]._retryQuery/(FLOAT32)Stat::DHT_RetryCnt[i]._issuedQuery
+                    <<"\t"<<(FLOAT32)Stat::DHT_RetryCnt[i]._retryUpdate/(FLOAT32)Stat::DHT_RetryCnt[i]._issuedUpdate<<endl;
+
+        }
+
+    }
+
+}
 /*
  generate query workload: independent of update
  */
@@ -1102,7 +1140,6 @@ UINT32 Underlay::generateUpdateWorkload(FLOAT64 mean_arrival){
                     qLocality_exp = -0;
                 }
             }
-            cout<<"Generate an update with mobility "<<global_guid_list[currGUIDIdx].getMobility()<<" query exp "<<qLocality_exp<<endl;
             issueQueries(currGUIDIdx,qLocality_exp);
             i++;
         }
@@ -1133,7 +1170,7 @@ UINT32 Underlay::generateLeaveChurn(UINT32 churnLength, FLOAT64 mean_arrival, FL
     }
     UINT32 currRound =0, generatedCnt =0;
     UINT32 currArrivalTime = 0;
-    while(currArrivalTime<churnLength && candidate_v.size()){
+    while(currArrivalTime < churnLength && candidate_v.size()){
         currRound = (UINT32)Util::Inst()->GenPoisson();
         int i=0;
         while(i<currRound){

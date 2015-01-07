@@ -403,14 +403,16 @@ void Underlay::genOutFileName(){
         ss.str("");
         
     } else {
-        strgOutName += "_CacheOff";
+        if (!Settings::ChurnHours && !Settings::QueryHours && !Settings::UpdateHours) {
+            strgOutName += "_CacheOff";
+        }
     }
     if (Settings::balanceBase) {
         strgOutName += "_RndSlct";
     } /*else {
         strgOutName += "_ShrtSlct";
     }*/
-    if (Settings::ChurnHours){
+    if (Settings::ChurnHours || Settings::QueryHours || Settings::UpdateHours){
         strgOutName +="_ChnRt";
         ss <<Settings::ChurnPerNode;
         strgOutName += ss.str();
@@ -423,16 +425,24 @@ void Underlay::genOutFileName(){
         ss <<Settings::OnOffRounds;
         strgOutName += ss.str();
         ss.str("");
-    }
-    if (Settings::QueryHours){
         strgOutName +="_QHrs";
         ss <<Settings::QueryHours;
         strgOutName += ss.str();
         ss.str("");
-    }
-    if (Settings::UpdateHours){
         strgOutName +="_UHrs";
         ss <<Settings::UpdateHours;
+        strgOutName += ss.str();
+        ss.str("");
+        strgOutName +="_LMSyn";
+        ss <<Settings::LocMobSync;
+        strgOutName += ss.str();
+        ss.str("");
+        strgOutName +="_SLocality";
+        ss <<Settings::StrongLocalityPerc;
+        strgOutName += ss.str();
+        ss.str("");
+        strgOutName +="_MLoc";
+        ss <<Settings::MedLocalityPerc;
         strgOutName += ss.str();
         ss.str("");
     }

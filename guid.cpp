@@ -25,6 +25,7 @@ GUID::GUID (UINT32 id, UINT32 nodeIdx, FLOAT64 time, char mobilityDegree, UINT64
     _updateTime_q.push_back(time);
     _updateRate = Settings::UpdateFrqGUID;
     _issuedQueryCnt =0;
+    _cacheHits =0;
 }
 GUID::~GUID(){
     
@@ -122,4 +123,16 @@ void GUID::simulateAnUpdate(){
     assert(getLastUpdateTime() == currUpdateTime);
     //cout<<"guid="<<_guid<<"issued an update w query cnt ="<<_issuedQueryCnt<<endl;
     _issuedQueryCnt=0;
+}
+
+void GUID::increaseCacheHits(){
+    _cacheHits++;
+}
+
+UINT32 GUID::getCacheHits(){
+    return _cacheHits;
+}
+
+void GUID::resetCacheHits(){
+    _cacheHits=0;
 }

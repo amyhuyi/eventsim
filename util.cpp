@@ -383,3 +383,14 @@ void Util::outErrorDetail(const char* outfilename){
         }
     }
 }
+
+void Util::cacheHitDetail(const char* outfilename){
+    ofstream outfHdlr;
+    outfHdlr.open(outfilename,ios::out | ios::in | ios:: trunc);
+    for (UINT32 i = 0; i < Underlay::Inst()->global_guid_list.size(); i++) {
+        if (Underlay::Inst()->global_guid_list[i].getCacheHits()) {
+            outfHdlr<<Underlay::Inst()->global_guid_list[i].getCacheHits()<<"\t"<<Underlay::Inst()->global_guid_list[i].getPopularity()<<"\t"
+                    <<(FLOAT32)Underlay::Inst()->global_guid_list[i].getCacheHits()/(FLOAT32)Underlay::Inst()->global_guid_list[i].getPopularity()<<endl;
+        }
+    }
+}

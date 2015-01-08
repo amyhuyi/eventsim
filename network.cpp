@@ -998,8 +998,12 @@ void Underlay::calQueryWorkload(){
     vector<UINT32> queryNodes;
     vector<UINT32> queryQuota;
     vector<UINT32> delay_results_v;
+    vector<UINT32> hit_counts_v;
     UINT32 currGUIDIdx;
     UINT64 queryUntlLstRnd=0;
+    UINT64 totalCacheHitsRnd=0;
+    stringstream ss (stringstream::in | stringstream::out);
+    
     for (currGUIDIdx = 0; currGUIDIdx < global_guid_list.size(); currGUIDIdx++) {
         //getQueryNodesByPoP(currGUIDIdx,queryNodes,queryQuota,-0.4);
         if (Settings::QueryOriginBalance>0) {
@@ -1024,8 +1028,14 @@ void Underlay::calQueryWorkload(){
         outfHdlr.open(strgOutName.c_str(),ios::out | ios::in | ios:: trunc);
         for (int i = 1; i <= Settings::QWrkldRounds; i++) {
             Settings::totalErrorCnt=0;
+            hit_counts_v.clear();
+            totalCacheHitsRnd=0;
             oneRoundQueryWrkld(delay_results_v,Settings::UpdateFrqGUID);
-            outfHdlr<<Settings::totalErrorCnt<<"\t"<<(delay_results_v.size()-queryUntlLstRnd)<<"\t"<<Settings::UpdateFrqGUID<<endl;
+            for (int j = 0; j < global_guid_list.size(); j++) {
+                hit_counts_v.push_back(global_guid_list[j].getCacheHits());
+                totalCacheHitsRnd += global_guid_list[j].getCacheHits();
+            }
+            outfHdlr<<Settings::totalErrorCnt<<"\t"<<totalCacheHitsRnd<<"\t"<<(delay_results_v.size()-queryUntlLstRnd)<<"\t"<<Settings::UpdateFrqGUID<<endl;
             queryUntlLstRnd = delay_results_v.size();
             /*while (Stat::Error_stat.size()) {
                 outfHdlr<<Stat::Error_stat[0]._popularity<<"\t"<<Stat::Error_stat[0]._TTL<<"\t"<<Stat::Error_stat[0]._goThrough<<endl;
@@ -1038,6 +1048,24 @@ void Underlay::calQueryWorkload(){
                 for (int j = 0; j < global_node_table.size(); j++) {
                     global_node_table[j].adaptGoThrough();
                 }
+            }
+            strgOutName = Settings::outFileName;
+            strgOutName += "_hitCnts_cdf_Rnd";
+            ss<<i;
+            strgOutName += ss.str();
+            strgOutName += "_";
+            ss.str("");
+            Util::Inst()->genCDF(strgOutName.c_str(),hit_counts_v);
+            
+            strgOutName = Settings::outFileName;
+            strgOutName += "_hitCnts_scatter_Rnd";
+            ss<<i;
+            strgOutName += ss.str();
+            strgOutName += "_";
+            ss.str("");
+            Util::Inst()->cacheHitDetail(strgOutName.c_str());
+            for (int j = 0; j < Underlay::Inst()->global_guid_list.size(); j++) {
+                Underlay::Inst()->global_guid_list[j].resetCacheHits();
             }
         }
         outfHdlr.close();
@@ -1402,8 +1430,6 @@ void Underlay::PrepareWorkloadCal(){
     set<UINT32> glbCalHostSet;
     for (UINT64 guidIdx = 0; guidIdx < global_guid_list.size(); guidIdx++) {
         Stat::Error_cnt_per_guid.push_back(0);
-        //Stat::CacheHit_per_guid.push_back(0);
-        //Stat::QueryHopCnt.push_back(0);//debug used for recording updates per guid
         glbCalHostSet.clear();
         global_guid_list[guidIdx]._replica_hosts.clear();
         if(Settings::GNRS_K){

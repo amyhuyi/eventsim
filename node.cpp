@@ -329,6 +329,7 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
         if (_cache[i]._guidIdx == guidIdx) { //cache hit
             _cache[i]._totalHits++;
             _cache[i]._hitCount++;
+            
             if (_cache[i]._goThroughProb*_cache[i]._hitCount >=1) {
                 hitNodeIdx = Underlay::Inst()->global_node_table[nextHopNodeIdx].cacheLookup(guidIdx,myTimestamp,remainNodePath,true);
                 if (_cache[i]._timestamp != myTimestamp) {
@@ -337,6 +338,7 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
                 }
                 _cache[i]._hitCount=0;
             }else{
+                
                 if (_cache[i]._timestamp < correctTimeStamp) { //obsolete cache
                     _cache[i]._updatesPerPeriod++;
                     if (!staleFlag) {
@@ -354,6 +356,7 @@ UINT32 Node::cacheLookup(UINT32 guidIdx, UINT32& myTimestamp, vector<UINT32>& re
                 } else{
                     myTimestamp = _cache[i]._timestamp;
                     hitNodeIdx = _nodeIdx;
+                    Underlay::Inst()->global_guid_list[guidIdx].increaseCacheHits();
                 }              
             }
             assert(_cache[i]._guidIdx == guidIdx && _cache[i]._timestamp == correctTimeStamp);

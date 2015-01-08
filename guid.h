@@ -21,6 +21,7 @@ private:
         char _mobility_degree;//'L' ||  'R'||  'G'
         UINT64 _popularity; //query no. following zipf
         UINT32 _issuedQueryCnt;
+        UINT32 _cacheHits;//count the number of cache hits per round
 public:
         vector<UINT32> _address_q; //queue of the Node (PoP) Idx this GUID traverses among
         vector<FLOAT64> _updateTime_q;
@@ -41,6 +42,9 @@ public:
         UINT64 getPopularity();
         void updateAddrNodeIdx(UINT32 newNodeIdx, FLOAT64 time);
         bool increaseQeueryCnt(); //return whether an update has been issued
+        void increaseCacheHits();
+        void resetCacheHits();
+        UINT32 getCacheHits();
         UINT32 getQueryCnt();
         void simulateAnUpdate();
 };

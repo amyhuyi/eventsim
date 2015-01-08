@@ -170,13 +170,11 @@ typedef struct _Error_Entry{
     }
 } Error_Entry;
 
-
 class Stat
 {
 public:
 	static vector<UINT32> Storage_per_node; //GNRS storage overhead
         static vector<Wrkld_Count> Workload_per_node; //GNRS answer query overhead
-        static vector<UINT32> CacheHit_per_guid; //GNRS queries answered by cache
         static vector<UINT32> QueryHopCnt;
         static vector<UINT32> QueryHitHopCnt;
 	static vector<Query_Latency> Query_latency_time;

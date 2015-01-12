@@ -369,6 +369,9 @@ void Underlay::genOutFileName(){
     } /*else {
         strgOutName += "_DplyAll";
     }*///omit deply all as default, show deploy gw 
+    if (Settings::FixPath) {
+        strgOutName += "_FixPath";  
+    }
     if (Settings::CacheOn) {
         strgOutName += "_CacheOn";
         ss <<Settings::CacheOn;
@@ -999,6 +1002,7 @@ void Underlay::calQueryWorkload(){
     vector<UINT32> queryQuota;
     vector<UINT32> delay_results_v;
     vector<UINT32> hit_counts_v;
+    vector<UINT32> inCacheCnt_v;
     UINT32 currGUIDIdx;
     UINT64 queryUntlLstRnd=0;
     UINT64 totalCacheHitsRnd=0;
@@ -1034,6 +1038,34 @@ void Underlay::calQueryWorkload(){
             for (int j = 0; j < global_guid_list.size(); j++) {
                 hit_counts_v.push_back(global_guid_list[j].getCacheHits());
                 totalCacheHitsRnd += global_guid_list[j].getCacheHits();
+                if (Settings::CacheSnapshot) {
+                    global_guid_list[j].resetInCacheCnt();
+                }
+            }
+            if (Settings::CacheSnapshot) {
+                for (int j = 0; j < global_node_table.size(); j++) {
+                    for (int k = 0; k < global_node_table[j]._cache.size(); k++) {
+                        global_guid_list[global_node_table[j]._cache[k]._guidIdx].increaseInCacheCnt();
+                    }
+                }
+                inCacheCnt_v.clear();
+                for (int j = 0; j < global_guid_list.size(); j++) {
+                    inCacheCnt_v.push_back(global_guid_list[j].getInCacheCnt());
+                }
+                strgOutName = Settings::outFileName;
+                strgOutName += "_inCache_cdf_Rnd";
+                ss<<i;
+                strgOutName += ss.str();
+                strgOutName += "_";
+                ss.str("");
+                Util::Inst()->genCDF(strgOutName.c_str(),inCacheCnt_v);
+                strgOutName = Settings::outFileName;
+                strgOutName += "_inCache_scatter_Rnd";
+                ss<<i;
+                strgOutName += ss.str();
+                strgOutName += "_";
+                ss.str("");
+                Util::Inst()->inCacheDetail(strgOutName.c_str());
             }
             outfHdlr<<Settings::totalErrorCnt<<"\t"<<totalCacheHitsRnd<<"\t"<<(delay_results_v.size()-queryUntlLstRnd)<<"\t"<<Settings::UpdateFrqGUID<<endl;
             queryUntlLstRnd = delay_results_v.size();
@@ -1069,14 +1101,8 @@ void Underlay::calQueryWorkload(){
             }
         }
         outfHdlr.close();
-        /*strgOutName = Settings::outFileName + "_ErrorStat";
-        outfHdlr.open(strgOutName.c_str(),ios::out | ios::in | ios:: trunc);
-        for (UINT32 i = 0;  i < Stat::Error_stat.size(); i++) {
-            outfHdlr<<Stat::Error_stat[i]._popularity<<"\t"<<Stat::Error_stat[i]._TTL<<"\t"<<Stat::Error_stat[i]._goThrough<<endl;
-        }
-        outfHdlr.close();*/
-        strgOutName = Settings::outFileName + "_ErrorScatter";
-        Util::Inst()->outErrorDetail(strgOutName.c_str());
+        /*strgOutName = Settings::outFileName + "_ErrorScatter";
+        Util::Inst()->outErrorDetail(strgOutName.c_str());*/
     }
     else {
         oneRoundQueryWrkld(delay_results_v,Settings::UpdateFrqGUID);

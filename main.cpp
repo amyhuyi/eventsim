@@ -58,6 +58,7 @@ UINT32 Settings::QueryPerClock =10;
 UINT32 Settings::TTL = 1000;
 bool Settings::AdaptGo = false;
 bool Settings::FixPath = false;
+bool Settings::CacheSnapshot = false;
 UINT32 Settings::QWrkldRounds =1;
 UINT64 Settings::totalErrorCnt =0;
 FLOAT32 Settings::ParetoParameter=1.04; //equals zipf parameter =2.04
@@ -328,6 +329,12 @@ void ParseArg(const char * argv)
 	ss <<arg.substr(8);
 	ss >>Settings::FixPath;
     }
+    else if (arg.find("cachesnapshot=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(14);
+	ss >>Settings::CacheSnapshot;
+    }
 }
 
 int main(int argc, const char* argv[])
@@ -406,6 +413,11 @@ int main(int argc, const char* argv[])
         cout<<"Settings::FixPath = true"<<endl;
     } else {
         cout<<"Settings::FixPath = false"<<endl;
+    }
+    if (Settings::CacheSnapshot) {
+        cout<<"Settings::CacheSnapshot = true"<<endl;
+    } else {
+        cout<<"Settings::CacheSnapshot = false"<<endl;
     }
     Underlay::Inst()->InitializeStat(); //finish node initialization, prepare node stat
     Underlay::Inst()->InitializeWorkload(); //finish guid init   

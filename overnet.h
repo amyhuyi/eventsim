@@ -101,6 +101,7 @@ public:
         static UINT64 totalErrorCnt;
         static FLOAT32 ParetoParameter;
         static bool FixPath; // query path fixed (choose every first PoP of an intermediate AS along the path)
+        static bool CacheSnapshot; //take a snapshot of cache at every node
 };
 
 typedef struct _Query_Latency{

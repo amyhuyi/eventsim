@@ -26,6 +26,7 @@ GUID::GUID (UINT32 id, UINT32 nodeIdx, FLOAT64 time, char mobilityDegree, UINT64
     _updateRate = Settings::UpdateFrqGUID;
     _issuedQueryCnt =0;
     _cacheHits =0;
+    _incacheCnt =0;
 }
 GUID::~GUID(){
     
@@ -129,10 +130,23 @@ void GUID::increaseCacheHits(){
     _cacheHits++;
 }
 
+void GUID::increaseInCacheCnt(){
+    _incacheCnt++;
+}
+
 UINT32 GUID::getCacheHits(){
     return _cacheHits;
 }
 
+
+UINT32 GUID::getInCacheCnt(){
+    return _incacheCnt;
+}
+
 void GUID::resetCacheHits(){
     _cacheHits=0;
+}
+
+void GUID::resetInCacheCnt(){
+    _incacheCnt=0;
 }

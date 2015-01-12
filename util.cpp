@@ -394,3 +394,13 @@ void Util::cacheHitDetail(const char* outfilename){
         }
     }
 }
+
+void Util::inCacheDetail(const char* outfilename){
+    ofstream outfHdlr;
+    outfHdlr.open(outfilename,ios::out | ios::in | ios:: trunc);
+    for (UINT32 i = 0; i < Underlay::Inst()->global_guid_list.size(); i++) {
+        if (Underlay::Inst()->global_guid_list[i].getInCacheCnt()) {
+            outfHdlr<<Underlay::Inst()->global_guid_list[i].getInCacheCnt()<<"\t"<<Underlay::Inst()->global_guid_list[i].getPopularity()<<endl;
+        }
+    }
+}

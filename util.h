@@ -33,6 +33,7 @@ public:
     //output cache and replica workload of each PoP, generate histogram imput for cache and replica workload
     void outWrkldDetail(const char* outfilename, vector<Wrkld_Count>& Wrkld_v);
     void cacheHitDetail(const char* outfilename); //output cache hit count and popularity
+    void inCacheDetail(const char* outfilename); //output cache copies and popularity
     void outErrorDetail(const char* outfilename); //output error count and popularity
     void genHistInput(const char* outfilename,vector<UINT32>& results_v, UINT32 noOfBin, bool enableFurther);
     void getParetoVec(FLOAT64 thisShape, long int totalNo, vector<UINT32>& results_v);

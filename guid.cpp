@@ -150,3 +150,11 @@ void GUID::resetCacheHits(){
 void GUID::resetInCacheCnt(){
     _incacheCnt=0;
 }
+
+void GUID::resetPopularity(){
+    _popularity =Settings::minQueryPerGUID;
+}
+
+void GUID::setPopularity(UINT64 pop){
+    _popularity = pop;
+}

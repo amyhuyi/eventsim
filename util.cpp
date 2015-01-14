@@ -76,6 +76,22 @@ UINT32 Util::genPareto(FLOAT64 thisShape, FLOAT64 maxValue){
     return total_value;
 }
 
+
+void Util::genPopularity(FLOAT64 zipfShape){
+    UINT64 totalQueries = Settings::QueryPerGUID * Underlay::Inst()->global_guid_list.size();
+    FLOAT64 probSum=0, inverseSum, currProb;
+    for (UINT64 i = 1; i <= Underlay::Inst()->global_guid_list.size(); i++) {
+        probSum += 1.0 /(float) pow((double) i, (double) (zipfShape));
+    }
+    inverseSum = 1/probSum;
+    probSum=0;
+    for (UINT64 i = 1; i <= Underlay::Inst()->global_guid_list.size(); i++) {
+        currProb = inverseSum / (float) pow((double) (i), (double) (zipfShape));
+        Underlay::Inst()->global_guid_list[i-1].setPopularity(UINT64 (currProb * totalQueries)+Settings::minQueryPerGUID);
+        probSum += currProb;
+    }
+    //cout<<"final probablity sum = "<<probSum<<endl;
+}
 void Util::getParetoVec(FLOAT64 thisShape, long int totalNo, vector<UINT32>& results_v){
     ResetPareto(thisShape);
     results_v.clear();

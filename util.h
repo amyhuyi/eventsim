@@ -25,6 +25,7 @@ public:
     void ResetPareto(FLOAT64 thisShape);
     void matchPareto(const char* outfilename, FLOAT64 scale, FLOAT64 thisShape);
     UINT32 genPareto(FLOAT64 thisShape, FLOAT64 maxValue); // return mean
+    void genPopularity(FLOAT64 thisShape);
     UINT32 calHashIDCapacity();
     UINT32 calParetoMean();
     void genCDF(const char* outfilename, vector<UINT32>& results_v);

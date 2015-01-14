@@ -287,8 +287,6 @@ void Underlay::InitializeWorkload(){
         totalActiveGUIDs += city_list[workload_cities[i]]._nodeIdx_v.size()*Settings::ActiveGUIDperPoP;
     }
     assert(workload_cities_guidquota.size() == workload_cities.size());
-    //debug
-    cout<<"Initialized pareto"<<Settings::ParetoParameter<<endl;
     Util::Inst()->ResetPareto(Settings::ParetoParameter);
     for(UINT64 i=0; i<totalActiveGUIDs; i++){
         if (workload_cities_guidquota[currCityIdx]==0) {
@@ -320,6 +318,9 @@ void Underlay::InitializeWorkload(){
     }
     updateGUIDs_v.clear();
     for (UINT64 i = 0; i < global_guid_list.size(); i++) {
+        if (Settings::newUseZipf) {
+            global_guid_list[i].resetPopularity();
+        }
         initializeMobility(i);
         //assign guid based on city popularity
         //select a percentage of guids to be mobile naturally proportional to city population
@@ -327,9 +328,17 @@ void Underlay::InitializeWorkload(){
             updateGUIDs_v.push_back(i);
         }
     }
+    if (Settings::newUseZipf) {
+        Util::Inst()->genPopularity(Settings::ParetoParameter+1);
+    }
     //cout<<"total guid"<<global_guid_list.size()<<",updatePercentageg="<<Settings::LocalMobilityPerc<<",update guids= "<<updateGUIDs_v.size()<<endl;
     genOutFileName();
-    /*sort(popularity_stat.begin(), popularity_stat.end());
+    /*vector<UINT32> popularity_stat;
+    
+    for (UINT64 i = 0; i < global_guid_list.size(); i++) {
+        popularity_stat.push_back(global_guid_list[i].getPopularity());
+
+    }
     string outfilename = Settings::outFileName;
     outfilename += "_guidPopularity_cdf";
     Util::Inst()->genCDF(outfilename.c_str(), popularity_stat);*/
@@ -359,6 +368,15 @@ void Underlay::genOutFileName(){
         ss <<Settings::ParetoParameter;
         strgOutName += ss.str();
         ss.str("");
+    }
+    if (Settings::minQueryPerGUID != 0) {
+        strgOutName += "_minQ";
+        ss <<Settings::minQueryPerGUID;
+        strgOutName += ss.str();
+        ss.str("");
+    }
+    if (Settings::newUseZipf) {
+        strgOutName += "_newUseZipf";
     }
     strgOutName += "_QOrigBal";
     ss <<Settings::QueryOriginBalance;
@@ -687,6 +705,10 @@ void Underlay::getQueryNodesByPoP(UINT32 guidIdx, vector<UINT32>& _queryNodes, v
     _queryNodes.clear();
     _queryQuota.clear();
     UINT64 totalNo = global_guid_list[guidIdx].getPopularity();
+    if (totalNo==0) {
+        return;
+    }
+
     set<UINT32> selected_cities;
     UINT32 randNum, randNum2, candidateNo;
     UINT32 cityIdx = global_node_table[global_guid_list[guidIdx].getCurrAddrNodeIdx()].getCityIdx();

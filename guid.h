@@ -40,6 +40,8 @@ public:
         UINT32 getCurrAddrNodeIdx();
         UINT32 getNextAddrNodeIdx();
         UINT32 getAddrASIdx();
+        void resetPopularity();
+        void setPopularity(UINT64 pop);
         UINT64 getPopularity();
         void updateAddrNodeIdx(UINT32 newNodeIdx, FLOAT64 time);
         bool increaseQeueryCnt(); //return whether an update has been issued

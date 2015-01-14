@@ -62,6 +62,8 @@ bool Settings::CacheSnapshot = false;
 UINT32 Settings::QWrkldRounds =1;
 UINT64 Settings::totalErrorCnt =0;
 FLOAT32 Settings::ParetoParameter=1.04; //equals zipf parameter =2.04
+bool Settings::newUseZipf = false;
+UINT32 Settings::minQueryPerGUID =0;
 /*!
  *  @brief Computes floor(log2(n))
  *  Works by finding position of MSB set.
@@ -137,6 +139,12 @@ void ParseArg(const char * argv)
 	stringstream ss (stringstream::in | stringstream::out);
 	ss <<arg.substr(13);
 	ss >>Settings::OnOffSession;
+    }
+    else if (arg.find("minqueryperguid=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(16);
+	ss >>Settings::minQueryPerGUID;
     }
     else if (arg.find("onoffrounds=") != string::npos)
     {
@@ -335,6 +343,12 @@ void ParseArg(const char * argv)
 	ss <<arg.substr(14);
 	ss >>Settings::CacheSnapshot;
     }
+    else if (arg.find("newusezipf=") != string::npos)
+    {
+	stringstream ss (stringstream::in | stringstream::out);
+	ss <<arg.substr(11);
+	ss >>Settings::newUseZipf;
+    }
 }
 
 int main(int argc, const char* argv[])
@@ -384,6 +398,7 @@ int main(int argc, const char* argv[])
     cout<<"Settings::QueryPerClock="<<Settings::QueryPerClock<<endl;
     cout<<"Settings::TTL="<<Settings::TTL<<endl;
     cout<<"Settings::ParetoParameter="<<Settings::ParetoParameter<<endl;
+    cout<<"Settings::minQueryPerGUID="<<Settings::minQueryPerGUID<<endl;
     if (Settings::Geo_Lat_On) {
         cout<<"Settings::Geo_Lat_On = true"<<endl;
     } else {
@@ -419,10 +434,14 @@ int main(int argc, const char* argv[])
     } else {
         cout<<"Settings::CacheSnapshot = false"<<endl;
     }
+    if (Settings::newUseZipf) {
+        cout<<"Settings::newUseZipf = true"<<endl;
+    } else {
+        cout<<"Settings::newUseZipf = false"<<endl;
+    }
     Underlay::Inst()->InitializeStat(); //finish node initialization, prepare node stat
     Underlay::Inst()->InitializeWorkload(); //finish guid init   
     Underlay::Inst()->PrepareWorkloadCal(); //prepare all guid stat
-    
     
     UINT32 totalNodes = Underlay::Inst()->global_node_table.size();
     //Underlay::Inst()->calStorageWorkload();

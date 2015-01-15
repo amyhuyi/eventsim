@@ -28,8 +28,8 @@ UINT32 Settings::NeighborSize =0; //full range neighbor size if undefined in com
 UINT32 Settings::GNRS_K =5;
 UINT32 Settings::Local_K =1;
 UINT32 Settings::Regional_K =1;
-FLOAT64 Settings::OnOffSession =10;//session length for churn
-UINT32 Settings::OnOffRounds=0;//0: leave, 1: leave+join, 2: leave+join+leave...
+UINT32 Settings::AvgOffSession =2;//average off session length, off length: [1,2*avg]
+UINT32 Settings::OnOffRounds=0;//0: leave simulate one patch of leaves, 1: leave+join repeated...
 UINT32 Settings::ChurnHours =0;//# of consecutive hours of churn generation
 UINT32 Settings::QueryHours =0;//# of hours query generation
 UINT32 Settings::UpdateHours =0;//# of hours update generation
@@ -134,11 +134,11 @@ void ParseArg(const char * argv)
 	ss <<arg.substr(14);
 	ss >>Settings::TestThreshold;
     }
-    else if (arg.find("onoffsession=") != string::npos)
+    else if (arg.find("avgoffsession=") != string::npos)
     {
 	stringstream ss (stringstream::in | stringstream::out);
-	ss <<arg.substr(13);
-	ss >>Settings::OnOffSession;
+	ss <<arg.substr(14);
+	ss >>Settings::AvgOffSession;
     }
     else if (arg.find("minqueryperguid=") != string::npos)
     {
@@ -354,6 +354,8 @@ void ParseArg(const char * argv)
 int main(int argc, const char* argv[])
 {
     EventScheduler::Inst()->AddEvent(new DummyEvent());
+    srand (time(NULL));
+    
     cout <<"Initializing the network ..." <<endl;
     //argv[1]: cityFileName, argv[2]:routeFileName, argv[3]:asInfoFileName, argv[4]: predicateFile
     Underlay::CreateInst(argv[1], argv[2], argv[3],argv[4]);
@@ -374,7 +376,7 @@ int main(int argc, const char* argv[])
     cout<<"Settings::GNRS_K="<<Settings::GNRS_K<<endl;
     cout<<"Settings::Local_K="<<Settings::Local_K<<endl;
     cout<<"Settings::Regional_K="<<Settings::Regional_K<<endl;
-    cout<<"Settings::OnOffSession="<<Settings::OnOffSession<<endl;//session length for churn
+    cout<<"Settings::AvgOffSession="<<Settings::AvgOffSession<<endl;//session length for churn
     cout<<"Settings::OnOffRounds="<<Settings::OnOffRounds<<endl;//0: leave, 1: leave+join, 2: leave+join+leave...
     cout<<"Settings::ChurnHours="<<Settings::ChurnHours<<endl;//# of consecutive hours of churn generation
     cout<<"Settings::QueryHours="<<Settings::QueryHours<<endl;//# of hours query generation
@@ -439,6 +441,7 @@ int main(int argc, const char* argv[])
     } else {
         cout<<"Settings::newUseZipf = false"<<endl;
     }
+    
     Underlay::Inst()->InitializeStat(); //finish node initialization, prepare node stat
     Underlay::Inst()->InitializeWorkload(); //finish guid init   
     Underlay::Inst()->PrepareWorkloadCal(); //prepare all guid stat
@@ -451,9 +454,9 @@ int main(int argc, const char* argv[])
 
     cout <<"EventScheduler::Inst()->GetCurrentTime() =" <<EventScheduler::Inst()->GetCurrentTime()<<",Size before churn"<<EventScheduler::Inst()->GetSize()<<endl;
     if(Settings::ChurnHours)
-        Underlay::Inst()->generateLeaveChurn(Settings::ChurnHours, Settings::ChurnPerNode*totalNodes, 
-                Settings::OnOffSession, Settings::OnOffRounds);
-    cout <<"EventScheduler::Inst()->GetCurrentTime() =" <<EventScheduler::Inst()->GetCurrentTime()<<",Size after churn"<<EventScheduler::Inst()->GetSize()<<endl;
+        Underlay::Inst()->generateLeaveChurn();
+    cout <<"EventScheduler::Inst()->GetCurrentTime() =" <<EventScheduler::Inst()->GetCurrentTime()<<",Size after churn"<<EventScheduler::Inst()->GetSize()
+            <<"totalNodes="<<totalNodes<<endl;
     
     while ( EventScheduler::Inst()->GetCurrentTime() <= Settings::EndTime){
 	Event * pevent = EventScheduler::Inst()->CurrentEvent();
@@ -464,9 +467,11 @@ int main(int argc, const char* argv[])
 	}
 	EventScheduler::Inst()->NextEvent();
     }
+    cout<<"Stat::Query_latency_time.size()"<<Stat::Query_latency_time.size()<<endl;
     if (Stat::Query_latency_time.size() || Stat::Insertion_latency_time.size()) {
         Underlay::Inst()->calEventLatnRetry();
     }
+    
     //Stat::Inst()->PrintRetryStat();
     //Stat::Inst()->PrintLatencyStat();
     //Stat::Inst()->PrintQueryLatencyCDF();

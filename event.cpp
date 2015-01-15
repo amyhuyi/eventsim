@@ -138,17 +138,8 @@ bool PreJoinMessage::Callback(){
             Underlay::Inst()->as_v[currASIdx].beNotifedAjoin(_nodeIdx);
         }
     }
-    else{
-        pingCnt = _service_time/PING_PERIOD;
-        for(it = myNeighborsIdx_v.begin(); it != myNeighborsIdx_v.end(); ++it){
-            currNodeIdx = (*it);
-            //Stat::Ping_per_node[currNodeIdx]+=pingCnt;
-            Stat::Premature_joins++;
-        }
-        if(_churnNo>0){
-            PreLeaveMessage * aleaveMsg = new PreLeaveMessage(_nodeIdx, 0, _service_time, (_churnNo-1));
-            EventScheduler::Inst()->AddEvent(aleaveMsg);
-        }
+    else{ 
+        Stat::Premature_joins++;
     } 
     return true;
 }
@@ -160,8 +151,9 @@ JoinMessage::JoinMessage(UINT32 node, FLOAT64 remaining_service_time,UINT32 chur
     _type = MT_JOIN;
 }
 bool JoinMessage::Callback(){
-    if(_churnNo>0){
-        PreLeaveMessage * aleaveMsg = new PreLeaveMessage(_nodeIdx, 0, _service_time, (_churnNo-1));
+    if(Settings::OnOffRounds){
+        FLOAT32 currRand2 = (rand()/double(RAND_MAX))+ Settings::AvgOffSession - 0.5; 
+        PreLeaveMessage * aleaveMsg = new PreLeaveMessage(_nodeIdx, 0, currRand2, Settings::OnOffRounds);
         EventScheduler::Inst()->AddEvent(aleaveMsg);
     }
     /*else{
@@ -202,10 +194,6 @@ bool PreLeaveMessage::Callback(){
     }
     else{
         Stat::Premature_leaves++;
-        if(_churnNo>0){
-            PreJoinMessage * ajoinMsg = new PreJoinMessage(_nodeIdx, 0, _off_time, (_churnNo-1));
-            EventScheduler::Inst()->AddEvent(ajoinMsg);
-        }
     }
         
     return true;
@@ -220,8 +208,10 @@ LeaveMessage::LeaveMessage(UINT32 node, FLOAT64 remaining_off_time,UINT32 churnN
 }
 
 bool LeaveMessage::Callback(){   
-    if(_churnNo>0){
-        PreJoinMessage * ajoinMsg = new PreJoinMessage(_nodeIdx, 0, _off_time, (_churnNo-1));
+    if(Settings::OnOffRounds){
+        UINT32 OnOffLenRatio = (1-Settings::ChurnPerNode)/Settings::ChurnPerNode;
+        FLOAT32 currRand2 = (rand()/double(RAND_MAX))+ Settings::AvgOffSession - 0.5; 
+        PreJoinMessage * ajoinMsg = new PreJoinMessage(_nodeIdx, 0, currRand2*OnOffLenRatio, Settings::OnOffRounds);
         EventScheduler::Inst()->AddEvent(ajoinMsg);
     }
     /*else{

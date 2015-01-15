@@ -79,7 +79,7 @@ public:
     void PrepareWorkloadCal();//preparation work to assist storage and query workload calculation
     UINT32 generateQueryWorkload(FLOAT64 mean_arrival);
     UINT32 generateUpdateWorkload(FLOAT64 mean_arrival);
-    UINT32 generateLeaveChurn(UINT32 churnLength, FLOAT64 mean_arrival, FLOAT64 sessionTime, UINT32 onOffTimes);
+    UINT32 generateLeaveChurn();
     void SynchNetwork();
     FLOAT64 getLatency(UINT32 src, UINT32 dest);
     UINT32 migrationOverhead4Join(UINT32 nodeIdx);

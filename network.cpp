@@ -439,7 +439,7 @@ void Underlay::genOutFileName(){
         strgOutName += ss.str();
         ss.str("");
         strgOutName +="_ChnSes";
-        ss <<Settings::OnOffSession;
+        ss <<Settings::AvgOffSession;
         strgOutName += ss.str();
         ss.str("");
         strgOutName +="_ChnRnd";
@@ -1245,29 +1245,22 @@ UINT32 Underlay::generateUpdateWorkload(FLOAT64 mean_arrival){
  *sessionTime: # of hours on/off; onOffTimes: # of times the node switch between
  *return the total no. of churns generated
  */
-UINT32 Underlay::generateLeaveChurn(UINT32 churnLength, FLOAT64 mean_arrival, FLOAT64 sessionTime, UINT32 onOffTimes){
-    UINT32 currNodeIdx, currASIdx;
-    
-    vector<UINT32> candidate_v;
-    Util::Inst()->ResetPoisson(mean_arrival);
+UINT32 Underlay::generateLeaveChurn(){
+    FLOAT32 currRand, currRand2;
+    UINT32 OnOffLenRatio = (1-Settings::ChurnPerNode)/Settings::ChurnPerNode;
+    UINT32 generatedCnt =0;
     for(UINT32 i=0; i<global_node_table.size();i++){
-        if(global_node_table[i].isInService())
-            candidate_v.push_back(i);
-    }
-    UINT32 currRound =0, generatedCnt =0;
-    UINT32 currArrivalTime = 0;
-    while(currArrivalTime < churnLength && candidate_v.size()){
-        currRound = (UINT32)Util::Inst()->GenPoisson();
-        int i=0;
-        while(i<currRound){
-            i++;
-            currNodeIdx = Util::Inst()->GenInt(candidate_v.size());
-            currASIdx = global_node_table[candidate_v[currNodeIdx]].getASIdx();
-            as_v[currASIdx].downgradeGNRS(candidate_v[currNodeIdx],(FLOAT64)currArrivalTime,sessionTime,onOffTimes);
-            candidate_v.erase(candidate_v.begin()+currNodeIdx);
+        assert(global_node_table[i].isInService());
+        currRand = rand() / double(RAND_MAX);
+        currRand2 = (rand()/double(RAND_MAX))+ Settings::AvgOffSession - 0.5; //off session length [avgoffSession-0.2,avgoffSession+0.5]
+        if (currRand <= Settings::ChurnPerNode) {
+            PreLeaveMessage * aLeaveMsg = new PreLeaveMessage (i, 0, currRand2, Settings::OnOffRounds);
+            EventScheduler::Inst()->AddEvent(aLeaveMsg);
+            generatedCnt ++;
+        } else if (Settings::OnOffRounds){
+            PreLeaveMessage * aLeaveMsg = new PreLeaveMessage (i, currRand2*OnOffLenRatio, currRand2, Settings::OnOffRounds);
+            EventScheduler::Inst()->AddEvent(aLeaveMsg);
         }
-        currArrivalTime++;
-        generatedCnt =+ currRound;
     }
     //debug
     cout<<"generate leave cnt"<<generatedCnt<<endl;

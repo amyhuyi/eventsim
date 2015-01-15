@@ -90,7 +90,7 @@ void Util::genPopularity(FLOAT64 zipfShape){
         Underlay::Inst()->global_guid_list[i-1].setPopularity(UINT64 (currProb * totalQueries)+Settings::minQueryPerGUID);
         probSum += currProb;
     }
-    //cout<<"final probablity sum = "<<probSum<<endl;
+    cout<<"final probablity sum = "<<probSum<<endl;
 }
 void Util::getParetoVec(FLOAT64 thisShape, long int totalNo, vector<UINT32>& results_v){
     ResetPareto(thisShape);

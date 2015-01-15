@@ -63,7 +63,7 @@ public:
         static string outFileName;
         static FLOAT64 EndTime;
         static FLOAT64 TestThreshold;//admission qualified threshold
-        static FLOAT64 OnOffSession;//session length for churn
+        static UINT32 AvgOffSession;//session length for churn
         static UINT32 OnOffRounds;//0: leave, 1: leave+join, 2: leave+join+leave...
         static UINT32 ChurnHours;//# of consecutive hours of churn generation
         static UINT32 QueryHours;//# of hours query generation

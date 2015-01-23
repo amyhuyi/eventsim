@@ -458,6 +458,9 @@ int main(int argc, const char* argv[])
     cout <<"EventScheduler::Inst()->GetCurrentTime() =" <<EventScheduler::Inst()->GetCurrentTime()<<",Size after churn"<<EventScheduler::Inst()->GetSize()
             <<"totalNodes="<<totalNodes<<endl;
     
+    if (Settings::QueryHours > Settings::EndTime) {
+        Settings::EndTime = Settings::UpdateHours;
+    }
     while ( EventScheduler::Inst()->GetCurrentTime() <= Settings::EndTime){
 	Event * pevent = EventScheduler::Inst()->CurrentEvent();
 	//cout <<"queued jobs: " <<EventScheduler::Inst()->GetSize() <<endl;

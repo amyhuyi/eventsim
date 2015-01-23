@@ -414,9 +414,17 @@ void Util::cacheHitDetail(const char* outfilename){
 void Util::inCacheDetail(const char* outfilename){
     ofstream outfHdlr;
     outfHdlr.open(outfilename,ios::out | ios::in | ios:: trunc);
+    UINT32 currSize=0;
     for (UINT32 i = 0; i < Underlay::Inst()->global_guid_list.size(); i++) {
         if (Underlay::Inst()->global_guid_list[i].getInCacheCnt()) {
-            outfHdlr<<Underlay::Inst()->global_guid_list[i].getInCacheCnt()<<"\t"<<Underlay::Inst()->global_guid_list[i].getPopularity()<<endl;
+            assert(Underlay::Inst()->global_guid_list[i]._goThru_v.size());
+            currSize = Underlay::Inst()->global_guid_list[i]._goThru_v.size();
+            sort(Underlay::Inst()->global_guid_list[i]._goThru_v.begin(), Underlay::Inst()->global_guid_list[i]._goThru_v.end());
+            outfHdlr<<Underlay::Inst()->global_guid_list[i].getInCacheCnt()<<"\t"<<Underlay::Inst()->global_guid_list[i].getPopularity()
+                    <<"\t"<<Underlay::Inst()->global_guid_list[i]._goThru_v[0]<<"\t"<<Underlay::Inst()->global_guid_list[i]._goThru_v[currSize*0.25]
+                    <<"\t"<<Underlay::Inst()->global_guid_list[i]._goThru_v[currSize*0.5]
+                    <<"\t"<<Underlay::Inst()->global_guid_list[i]._goThru_v[currSize*0.75]
+                    <<"\t"<<Underlay::Inst()->global_guid_list[i]._goThru_v[currSize-1]<<endl;
         }
     }
 }

@@ -340,8 +340,8 @@ void Underlay::InitializeWorkload(){
 
     }
     string outfilename = Settings::outFileName;
-    outfilename += "_guidPopularity_cdf";
-    Util::Inst()->genCDF(outfilename.c_str(), popularity_stat);*/
+    outfilename += "_guidPop_pdf";
+    Util::Inst()->genPDF(outfilename.c_str(), popularity_stat);*/
 }
 
 void Underlay::genOutFileName(){
@@ -397,7 +397,10 @@ void Underlay::genOutFileName(){
         ss.str("");
         if (Settings::AdaptGo) {
             strgOutName += "_aptGo";
-        } 
+        }
+        else {
+            strgOutName += "_noGo";
+        }
         strgOutName += "_GoThru";
         ss <<Settings::GoThroughProb;
         strgOutName += ss.str();
@@ -1062,12 +1065,14 @@ void Underlay::calQueryWorkload(){
                 totalCacheHitsRnd += global_guid_list[j].getCacheHits();
                 if (Settings::CacheSnapshot) {
                     global_guid_list[j].resetInCacheCnt();
+                    global_guid_list[j]._goThru_v.clear();
                 }
             }
             if (Settings::CacheSnapshot) {
                 for (int j = 0; j < global_node_table.size(); j++) {
                     for (int k = 0; k < global_node_table[j]._cache.size(); k++) {
                         global_guid_list[global_node_table[j]._cache[k]._guidIdx].increaseInCacheCnt();
+                        global_guid_list[global_node_table[j]._cache[k]._guidIdx]._goThru_v.push_back(global_node_table[j]._cache[k]._goThroughProb);
                     }
                 }
                 inCacheCnt_v.clear();
@@ -1103,6 +1108,7 @@ void Underlay::calQueryWorkload(){
                     global_node_table[j].adaptGoThrough();
                 }
             }
+            
             strgOutName = Settings::outFileName;
             strgOutName += "_hitCnts_cdf_Rnd";
             ss<<i;
@@ -1136,8 +1142,8 @@ void Underlay::calQueryWorkload(){
     }
     strgOutName = Settings::outFileName + "_QWrkld_scatter";
     Util::Inst()->outWrkldDetail(strgOutName.c_str(),Stat::Workload_per_node);
-    strgOutName = Settings::outFileName + "_qLatency_cdf";
-    Util::Inst()->genCDF(strgOutName.c_str(),delay_results_v);    
+    //strgOutName = Settings::outFileName + "_qLatency_cdf";
+    //Util::Inst()->genCDF(strgOutName.c_str(),delay_results_v);    
 }
 
 void Underlay::calEventLatnRetry(){

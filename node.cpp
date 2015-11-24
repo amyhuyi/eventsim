@@ -149,14 +149,14 @@ FLOAT64 Node::calInsertDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyIngl
         if (correctHost.size()) {
             retryDistance = getMinDistance(correctHost,dstNodeIdx)*2;
             retryDistance += getMaxDistance(onlyInglobal)*2;
-            //cout<<"retryDistance #3"<<retryDistance<<endl;
+            cout<<"retryDistance #3"<<retryDistance<<endl;
         } 
         else {
             assert(onlyInlocal.size()&&onlyInglobal.size());
             retryDistance = getMaxDistance(onlyInlocal)*2;
             retryDistance += getMaxDistance(onlyInglobal)*2;
             retryDistance += log10 ((double)Underlay::Inst()->global_node_table.size()) * getMinDistance(onlyInglobal,dstNodeIdx);
-            //cout<<"retryDistance #4"<<retryDistance<<endl;
+            cout<<"retryDistance #4"<<retryDistance<<endl;
         }
         //debug
         return retryDistance;
@@ -188,6 +188,8 @@ FLOAT64 Node::calQueryDelay(vector<UINT32> onlyInlocal, vector<UINT32> onlyInglo
         else if(correctHost.size() && getMinDistance(onlyInlocal,dstNodeIdx)>= getMinDistance(correctHost,dstNodeIdx)){
             minDistance = getMinDistance(correctHost,dstNodeIdx);
             Stat::Workload_per_node[dstNodeIdx]._replicaWrkld++;
+            //debug
+            cout<<"retryDistance #5"<<retryDistance<<endl;
             return minDistance*2;
         }
         else{

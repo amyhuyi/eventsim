@@ -23,7 +23,7 @@ UINT32 Stat::Premature_leaves=0;
 UINT32 Settings::CacheLookupLat =0; //cache lookup latency at one hop in ms
 FLOAT64 Settings::EndTime = 50;
 FLOAT64 Settings::TestThreshold = 0.1;
-UINT32 Settings::ActiveGUIDperPoP = 10;	// 
+UINT32 Settings::ActiveGUIDperPoP = 10;	//No. of guids may be inserted by each name server
 UINT32 Settings::NeighborSize =0; //full range neighbor size if undefined in command line, use default 2*ceil(K/2)
 UINT32 Settings::GNRS_K =5;
 UINT32 Settings::Local_K =1;
@@ -31,9 +31,9 @@ UINT32 Settings::Regional_K =1;
 UINT32 Settings::AvgOffSession =2;//average off session length, off length: [1,2*avg]
 UINT32 Settings::OnOffRounds=0;//0: leave simulate one patch of leaves, 1: leave+join repeated...
 UINT32 Settings::ChurnHours =0;//# of consecutive hours of churn generation
-UINT32 Settings::QueryHours =0;//# of hours query generation
-UINT32 Settings::UpdateHours =0;//# of hours update generation
-FLOAT64 Settings::QueryPerNode = 10000;
+UINT32 Settings::QueryHours =0;//# of time rounds for query generation
+UINT32 Settings::UpdateHours =0;//# of time rounds for update generation
+FLOAT64 Settings::QueryPerNode = 10000;//each time round total queries = QueryPerNode*totalNode
 FLOAT64 Settings::UpdatePerNode = 1000;
 string Settings::outFileName;
 FLOAT64 Settings::ChurnPerNode=0.01;
@@ -471,14 +471,18 @@ int main(int argc, const char* argv[])
 	EventScheduler::Inst()->NextEvent();
     }
     cout<<"Stat::Query_latency_time.size()"<<Stat::Query_latency_time.size()<<endl;
-    if (Stat::Query_latency_time.size() || Stat::Insertion_latency_time.size()) {
-        Underlay::Inst()->calEventLatnRetry();
+    if (Stat::Query_latency_time.size()) {
+        Stat::Inst()->PrintQueryLatencyCDF();
+        //Underlay::Inst()->calEventLatnRetry();
     }
+    cout<<"Stat::Insertion_latency_time.size()"<<Stat::Insertion_latency_time.size()<<endl;
+    if (Stat::Insertion_latency_time.size()) {
+        Stat::Inst()->PrintUpdateLatencyCDF();
+    }
+
     
     //Stat::Inst()->PrintRetryStat();
     //Stat::Inst()->PrintLatencyStat();
-    //Stat::Inst()->PrintQueryLatencyCDF();
-    //Stat::Inst()->PrintUpdateLatencyCDF();
     //Util::Inst()->matchPareto("/Users/yihu/Downloads/genPareto", 1, 0.78);
     //vector<UINT32> results_v;
     //Util::Inst()->getParetoVec(2.04,1000,results_v);

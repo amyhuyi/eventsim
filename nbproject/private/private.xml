@@ -6,18 +6,6 @@
     </data>
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
-        <group>
-            <file>file:/Users/yihu/Documents/GGNRS/eventsim/guid.h</file>
-            <file>file:/Users/yihu/Documents/GGNRS/eventsim/node.h</file>
-            <file>file:/Users/yihu/Documents/GGNRS/eventsim/network.h</file>
-            <file>file:/Users/yihu/Documents/GGNRS/eventsim/main.cpp</file>
-            <file>file:/Users/yihu/Documents/GGNRS/eventsim/network.cpp</file>
-            <file>file:/Users/yihu/Documents/GGNRS/eventsim/overnet.h</file>
-            <file>file:/Users/yihu/Documents/GGNRS/eventsim/event.cpp</file>
-            <file>file:/Users/yihu/Documents/GGNRS/eventsim/util.cpp</file>
-            <file>file:/Users/yihu/Documents/GGNRS/eventsim/node.cpp</file>
-            <file>file:/Users/yihu/Documents/GGNRS/eventsim/event.h</file>
-            <file>file:/Users/yihu/Documents/GGNRS/eventsim/guid.cpp</file>
-        </group>
+        <group/>
     </open-files>
 </project-private>

@@ -270,7 +270,7 @@ void Underlay::InitializeStat(){
         Stat::Workload_per_node.push_back(thisWrkld);
     }
 }
-/* insert ActiveGUIDperPoP no. of guid on workload_cities
+/* insert ActiveGUIDperPoP no. of guid on workload_cities (cities where name servers are deployed)
  * select PoPs in workload_cities for GUID insertion
  */
 void Underlay::InitializeWorkload(){
